@@ -16,3 +16,8 @@ vendor
 
 # Ignore built binaries
 bin/*
+
+# Ignore make outputs
+navarchos
+release/
+.env

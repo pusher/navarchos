@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/pusher/navarchos/pkg/apis"
 	"github.com/pusher/navarchos/pkg/controller"
@@ -30,10 +32,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
+var (
+	showVersion = flag.Bool("version", false, "Show version and exit")
+)
+
 func main() {
 	var metricsAddr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("navarchos %s (built with %s)\n", VERSION, runtime.Version())
+		return
+	}
+
 	logf.SetLogger(logf.ZapLogger(false))
 	log := logf.Log.WithName("entrypoint")
 

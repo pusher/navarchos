@@ -1,17 +1,28 @@
 # Build the manager binary
-FROM golang:1.10.3 as builder
+FROM golang:1.12 as builder
+
+ARG VERSION=undefined
+
+# Install Dep
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 # Copy in the go src
 WORKDIR /go/src/github.com/pusher/navarchos
+COPY Gopkg.lock Gopkg.lock
+COPY Gopkg.toml Gopkg.toml
+
+# Fetch dependencies before copying code (should cache unless Gopkg's change)
+RUN dep ensure --vendor-only
+
 COPY pkg/    pkg/
 COPY cmd/    cmd/
-COPY vendor/ vendor/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager github.com/pusher/navarchos/cmd/manager
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o navarchos -ldflags="-X main.VERSION=${VERSION}" github.com/pusher/navarchos/cmd/manager
 
 # Copy the controller-manager into a thin image
-FROM ubuntu:latest
-WORKDIR /
-COPY --from=builder /go/src/github.com/pusher/navarchos/manager .
-ENTRYPOINT ["/manager"]
+FROM alpine:3.9
+RUN apk --no-cache add ca-certificates
+WORKDIR /bin
+COPY --from=builder /go/src/github.com/pusher/navarchos/navarchos .
+ENTRYPOINT ["/bin/navarchos"]
