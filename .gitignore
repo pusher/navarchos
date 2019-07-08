@@ -13,3 +13,6 @@
 
 # Don't check in dependencies
 vendor
+
+# Ignore built binaries
+bin/*
