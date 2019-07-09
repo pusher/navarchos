@@ -18,6 +18,6 @@ vendor
 bin/*
 
 # Ignore make outputs
-navarchos
+/navarchos
 release/
 .env
