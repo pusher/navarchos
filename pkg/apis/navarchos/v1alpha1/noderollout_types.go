@@ -17,22 +17,108 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // NodeRolloutSpec defines the desired state of NodeRollout
 type NodeRolloutSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// NodeSelectors uses label selectors to select a group of nodes.
+	// The priority set on the label selector will be passed to the NodeReplacement.
+	// The highest priority of any matching LabelSelector will be used,
+	NodeSelectors []PriorityLabelSelector `json:"nodeSelectors,omitempty"`
+
+	// NodeNames allows specific nodes to be requested for replacement by name.
+	// The priority set on the name will be passed to the NodeReplacement.
+	// NodeName priorities always override NodeSelector priorities.
+	NodeNames []PriorityName `json:"nodeNames,omitempty"`
 }
+
+// PriorityLabelSelector adds a priority field to the metav1.LabelSelector
+type PriorityLabelSelector struct {
+	metav1.LabelSelector `json:",inline"`
+	Priority             *int `json:"priority,omitempty"`
+}
+
+// PriorityName pairs a Name with a Priority
+type PriorityName struct {
+	Name     string `json:"name"`
+	Priority *int   `json:"priority"`
+}
+
+// NodeRolloutPhase determines the phase in which the NodeRollout currently is
+type NodeRolloutPhase string
+
+// The following RolloutPhases enumerate all possible NodeRolloutPhases
+const (
+	RolloutPhaseNew        NodeRolloutPhase = "New"
+	RolloutPhaseInProgress NodeRolloutPhase = "InProgress"
+	RolloutPhaseCompleted  NodeRolloutPhase = "Completed"
+	RolloutPhaseFailed     NodeRolloutPhase = "Failed"
+)
 
 // NodeRolloutStatus defines the observed state of NodeRollout
 type NodeRolloutStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Phase is used to determine which phase of the replacement cycle a Rollout
+	// is currently in.
+	Phase NodeRolloutPhase `json:"phase"`
+
+	// ReplacementsCreated lists the names of all NodeReplacements created by the
+	// controller for this NodeRollout.
+	ReplacementsCreated []string `json:"replacementsCreated,omitempty"`
+
+	// ReplacementsCreatedCount is the count of ReplacementsCreated.
+	// This is used for printing in kubectl.
+	ReplacementsCreatedCount int `json:"replacementsCreatedCount,omitempty"`
+
+	// ReplacementsCompleted lists the names of all NodeReplacements that have
+	// successfully replaced their node.
+	ReplacementsCompleted []string `json:"replacementsCompleted,omitempty"`
+
+	// ReplacementsCompletedCount is the count of ReplacementsCompleted.
+	// This is used for printing in kubectl.
+	ReplacementsCompletedCount int `json:"replacementsCompletedCount,omitempty"`
+
+	// ReplacementsFailed lists the names of all NodeReplacements that have
+	// permanently failed to replace their node.
+	ReplacementsFailed []string `json:"replacementsFailed,omitempty"`
+
+	// ReplacementsFailedCount is the count of ReplacementsFailed.
+	// This is used for printing in kubectl.
+	ReplacementsFailedCount int `json:"replacementsFailedCount,omitempty"`
+
+	// Conditions gives detailed condition information about the NodeRollout
+	Conditions []NodeReplacementCondition `json:"conditions,omitempty"`
+}
+
+// NodeRolloutConditionType is the type of a NodeRolloutCondition
+type NodeRolloutConditionType string
+
+const (
+	// ReplacementsCreatedType referes to whether the controller successfully
+	// created all of the required NodeRollouts
+	ReplacementsCreatedType NodeRolloutConditionType = "ReplacementsCreated"
+)
+
+// NodeRolloutCondition is a status condition for a NodeRollout
+type NodeRolloutCondition struct {
+	// Type of this condition
+	Type NodeRolloutConditionType `json:"type"`
+
+	// Status of this condition
+	Status corev1.ConditionStatus `json:"status"`
+
+	// LastUpdateTime of this condition
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+
+	// LastTransitionTime of this condition
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+
+	// Reason for the current status of this condition
+	Reason string `json:"reason,omitempty"`
+
+	// Message associated with this condition
+	Message string `json:"message,omitempty"`
 }
 
 // +genclient
