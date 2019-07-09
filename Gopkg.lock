@@ -949,6 +949,8 @@
     "github.com/emicklei/go-restful",
     "github.com/go-logr/glogr",
     "github.com/onsi/ginkgo",
+    "github.com/onsi/ginkgo/config",
+    "github.com/onsi/ginkgo/reporters",
     "github.com/onsi/gomega",
     "golang.org/x/net/context",
     "k8s.io/api/apps/v1",

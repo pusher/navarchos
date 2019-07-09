@@ -17,15 +17,14 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"testing"
-
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestStorageNodeRollout(t *testing.T) {
+var _ = Describe("StorageNodeRollout", func() {
 	key := types.NamespacedName{
 		Name:      "foo",
 		Namespace: "default",
@@ -34,25 +33,27 @@ func TestStorageNodeRollout(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
-		}}
-	g := gomega.NewGomegaWithT(t)
+		},
+	}
 
-	// Test Create
-	fetched := &NodeRollout{}
-	g.Expect(c.Create(context.TODO(), created)).NotTo(gomega.HaveOccurred())
+	It("can create, update and delete the object", func() {
+		// Test Create
+		fetched := &NodeRollout{}
+		Expect(c.Create(context.TODO(), created)).NotTo(HaveOccurred())
 
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(fetched).To(gomega.Equal(created))
+		Expect(c.Get(context.TODO(), key, fetched)).NotTo(HaveOccurred())
+		Expect(fetched).To(Equal(created))
 
-	// Test Updating the Labels
-	updated := fetched.DeepCopy()
-	updated.Labels = map[string]string{"hello": "world"}
-	g.Expect(c.Update(context.TODO(), updated)).NotTo(gomega.HaveOccurred())
+		// Test Updating the Labels
+		updated := fetched.DeepCopy()
+		updated.Labels = map[string]string{"hello": "world"}
+		Expect(c.Update(context.TODO(), updated)).NotTo(HaveOccurred())
 
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(fetched).To(gomega.Equal(updated))
+		Expect(c.Get(context.TODO(), key, fetched)).NotTo(HaveOccurred())
+		Expect(fetched).To(Equal(updated))
 
-	// Test Delete
-	g.Expect(c.Delete(context.TODO(), fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(c.Get(context.TODO(), key, fetched)).To(gomega.HaveOccurred())
-}
+		// Test Delete
+		Expect(c.Delete(context.TODO(), fetched)).NotTo(HaveOccurred())
+		Expect(c.Get(context.TODO(), key, fetched)).To(HaveOccurred())
+	})
+})

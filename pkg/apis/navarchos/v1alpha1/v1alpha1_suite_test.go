@@ -18,10 +18,12 @@ package v1alpha1
 
 import (
 	"log"
-	"os"
 	"path/filepath"
 	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pusher/navarchos/test/reporters"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,9 +32,15 @@ import (
 
 var cfg *rest.Config
 var c client.Client
+var env *envtest.Environment
 
-func TestMain(m *testing.M) {
-	t := &envtest.Environment{
+func TestTypes(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecsWithDefaultAndCustomReporters(t, "Navarchos API Suite", reporters.Reporters())
+}
+
+var _ = BeforeSuite(func() {
+	env = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "config", "crds")},
 	}
 
@@ -41,15 +49,15 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	if cfg, err = t.Start(); err != nil {
+	if cfg, err = env.Start(); err != nil {
 		log.Fatal(err)
 	}
 
 	if c, err = client.New(cfg, client.Options{Scheme: scheme.Scheme}); err != nil {
 		log.Fatal(err)
 	}
+})
 
-	code := m.Run()
-	t.Stop()
-	os.Exit(code)
-}
+var _ = AfterSuite(func() {
+	env.Stop()
+})
