@@ -37,6 +37,7 @@ type NodeReplacementStatus struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // NodeReplacement is the Schema for the nodereplacements API
 // +k8s:openapi-gen=true
@@ -49,6 +50,7 @@ type NodeReplacement struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // NodeReplacementList contains a list of NodeReplacement
 type NodeReplacementList struct {

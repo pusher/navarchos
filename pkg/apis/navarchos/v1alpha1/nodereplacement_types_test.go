@@ -27,12 +27,10 @@ import (
 var _ = Describe("StorageNodeReplacement", func() {
 	key := types.NamespacedName{
 		Name:      "foo",
-		Namespace: "default",
 	}
 	created := &NodeReplacement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: "default",
 		}}
 
 	It("can create, update and delete the object", func() {

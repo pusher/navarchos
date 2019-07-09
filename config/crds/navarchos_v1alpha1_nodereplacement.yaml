@@ -10,7 +10,7 @@ spec:
   names:
     kind: NodeReplacement
     plural: nodereplacements
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       properties:

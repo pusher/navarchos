@@ -37,6 +37,7 @@ type NodeRolloutStatus struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // NodeRollout is the Schema for the noderollouts API
 // +k8s:openapi-gen=true
@@ -49,6 +50,7 @@ type NodeRollout struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
 
 // NodeRolloutList contains a list of NodeRollout
 type NodeRolloutList struct {

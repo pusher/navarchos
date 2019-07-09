@@ -27,12 +27,10 @@ import (
 var _ = Describe("StorageNodeRollout", func() {
 	key := types.NamespacedName{
 		Name:      "foo",
-		Namespace: "default",
 	}
 	created := &NodeRollout{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: "default",
 		},
 	}
 

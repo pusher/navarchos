@@ -10,7 +10,7 @@ spec:
   names:
     kind: NodeRollout
     plural: noderollouts
-  scope: Namespaced
+  scope: Cluster
   validation:
     openAPIV3Schema:
       properties:
