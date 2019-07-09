@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
+	"github.com/go-logr/glogr"
 	"github.com/pusher/navarchos/pkg/apis"
 	"github.com/pusher/navarchos/pkg/controller"
 	"github.com/pusher/navarchos/pkg/webhook"
@@ -33,12 +35,15 @@ import (
 )
 
 var (
-	showVersion = flag.Bool("version", false, "Show version and exit")
+	leaderElection          = flag.Bool("leader-election", false, "Should the controller use leader election")
+	leaderElectionID        = flag.String("leader-election-id", "", "Name of the configmap used by the leader election system")
+	leaderElectionNamespace = flag.String("leader-election-namespace", "", "Namespace for the configmap used by the leader election system")
+	syncPeriod              = flag.Duration("sync-period", 5*time.Minute, "Reconcile sync period")
+	showVersion             = flag.Bool("version", false, "Show version and exit")
+	metricsAddr             = flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 )
 
 func main() {
-	var metricsAddr string
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.Parse()
 
 	if *showVersion {
@@ -46,7 +51,7 @@ func main() {
 		return
 	}
 
-	logf.SetLogger(logf.ZapLogger(false))
+	logf.SetLogger(glogr.New())
 	log := logf.Log.WithName("entrypoint")
 
 	// Get a config to talk to the apiserver
@@ -59,7 +64,13 @@ func main() {
 
 	// Create a new Cmd to provide shared dependencies and start components
 	log.Info("setting up manager")
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: metricsAddr})
+	mgr, err := manager.New(cfg, manager.Options{
+		LeaderElection:          *leaderElection,
+		LeaderElectionID:        *leaderElectionID,
+		LeaderElectionNamespace: *leaderElectionNamespace,
+		MetricsBindAddress:      *metricsAddr,
+		SyncPeriod:              syncPeriod,
+	})
 	if err != nil {
 		log.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
