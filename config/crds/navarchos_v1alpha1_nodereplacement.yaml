@@ -27,8 +27,113 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            priority:
+              description: Priority determines the priority of this NodeReplacement.
+                Higher priorities should be replaced sooner.
+              format: int64
+              type: integer
           type: object
         status:
+          properties:
+            conditions:
+              description: Conditions gives detailed condition information about the
+                NodeReplacement
+              items:
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime of this condition
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    description: LastUpdateTime of this condition
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message associated with this condition
+                    type: string
+                  reason:
+                    description: Reason for the current status of this condition
+                    type: string
+                  status:
+                    description: Status of this condition
+                    type: string
+                  type:
+                    description: Type of this condition
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+            evictedPods:
+              description: EvictedPods lists all pods successfully evicted by the
+                controller.
+              items:
+                type: string
+              type: array
+            evictedPodsCount:
+              description: EvictedPodsCount is the count of EvictedPods
+              format: int64
+              type: integer
+            failedPods:
+              description: FailedPods lists all pods the controller has failed to
+                evict.
+              items:
+                properties:
+                  name:
+                    description: Name is the name of the pod
+                    type: string
+                  reason:
+                    description: Reason is the message to display to the user as to
+                      why this Pod is ignored/failed
+                    type: string
+                required:
+                - name
+                - reason
+                type: object
+              type: array
+            failedPodsCount:
+              description: FailedPodsCount is the count of FailedPods.
+              format: int64
+              type: integer
+            ignoredPods:
+              description: IgnoredPods lists all pods not being evicted by the controller.
+                This should contain daemonset pods at the minimum.
+              items:
+                properties:
+                  name:
+                    description: Name is the name of the pod
+                    type: string
+                  reason:
+                    description: Reason is the message to display to the user as to
+                      why this Pod is ignored/failed
+                    type: string
+                required:
+                - name
+                - reason
+                type: object
+              type: array
+            ignoredPodsCount:
+              description: IgnoredPodsCount is the count of IgnoredPods.
+              format: int64
+              type: integer
+            nodePods:
+              description: NodePods lists all pods on the node when the  controller
+                cordoned it.
+              items:
+                type: string
+              type: array
+            nodePodsCount:
+              description: NodePodsCount is the count of NodePods.
+              format: int64
+              type: integer
+            phase:
+              description: Phase is used to determine which phase of the replacement
+                cycle a Replacement is currently in.
+              type: string
+          required:
+          - phase
           type: object
   version: v1alpha1
 status:
