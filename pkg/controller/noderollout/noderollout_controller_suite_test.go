@@ -17,38 +17,50 @@ limitations under the License.
 package noderollout
 
 import (
-	stdlog "log"
-	"os"
+	"log"
 	"path/filepath"
 	"sync"
 	"testing"
 
-	"github.com/onsi/gomega"
+	"github.com/go-logr/glogr"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/pusher/navarchos/pkg/apis"
+	"github.com/pusher/navarchos/test/reporters"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var cfg *rest.Config
 
-func TestMain(m *testing.M) {
-	t := &envtest.Environment{
+func TestMain(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecsWithDefaultAndCustomReporters(t, "NodeRollout Controller Suite", reporters.Reporters())
+}
+
+var t *envtest.Environment
+
+var _ = BeforeSuite(func() {
+	t = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
 	}
 	apis.AddToScheme(scheme.Scheme)
 
+	logf.SetLogger(glogr.New())
+
 	var err error
 	if cfg, err = t.Start(); err != nil {
-		stdlog.Fatal(err)
+		log.Fatal(err)
 	}
+})
 
-	code := m.Run()
+var _ = AfterSuite(func() {
 	t.Stop()
-	os.Exit(code)
-}
+})
 
 // SetupTestReconcile returns a reconcile.Reconcile implementation that delegates to inner and
 // writes the request to requests after Reconcile is finished.
@@ -63,13 +75,14 @@ func SetupTestReconcile(inner reconcile.Reconciler) (reconcile.Reconciler, chan 
 }
 
 // StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup) {
+func StartTestManager(mgr manager.Manager) (chan struct{}, *sync.WaitGroup) {
 	stop := make(chan struct{})
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 	go func() {
+		defer GinkgoRecover()
+		wg.Add(1)
 		defer wg.Done()
-		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
+		Expect(mgr.Start(stop)).NotTo(HaveOccurred())
 	}()
 	return stop, wg
 }

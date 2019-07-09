@@ -17,14 +17,13 @@ limitations under the License.
 package noderollout
 
 import (
-	"testing"
+	"context"
+	"sync"
 	"time"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
-	"golang.org/x/net/context"
-	appsv1 "k8s.io/api/apps/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,57 +31,57 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var c client.Client
+var _ = Describe("NodeRollout controller suite", func() {
+	var c client.Client
 
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: "default"}
+	var nodeRollout *navarchosv1alpha1.NodeRollout
+	var requests <-chan reconcile.Request
+	var mgrStopped *sync.WaitGroup
+	var stopMgr chan struct{}
 
-const timeout = time.Second * 5
+	const timeout = time.Second * 5
 
-func TestReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-	instance := &navarchosv1alpha1.NodeRollout{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	var waitForReconcile = func(obj metav1.Object) {
+		request := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      obj.GetName(),
+				Namespace: obj.GetNamespace(),
+			},
+		}
+		// wait for reconcile for the object
+		Eventually(requests, timeout).Should(Receive(Equal(request)))
+	}
 
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	c = mgr.GetClient()
+	BeforeEach(func() {
+		mgr, err := manager.New(cfg, manager.Options{})
+		Expect(err).NotTo(HaveOccurred())
+		c = mgr.GetClient()
 
-	recFn, requests := SetupTestReconcile(newReconciler(mgr))
-	g.Expect(add(mgr, recFn)).NotTo(gomega.HaveOccurred())
+		var recFn reconcile.Reconciler
+		recFn, requests = SetupTestReconcile(newReconciler(mgr))
+		Expect(add(mgr, recFn)).NotTo(HaveOccurred())
 
-	stopMgr, mgrStopped := StartTestManager(mgr, g)
+		stopMgr, mgrStopped = StartTestManager(mgr)
 
-	defer func() {
+		nodeRollout = &navarchosv1alpha1.NodeRollout{}
+	})
+
+	AfterEach(func() {
 		close(stopMgr)
 		mgrStopped.Wait()
-	}()
+	})
 
-	// Create the NodeRollout object and expect the Reconcile and Deployment to be created
-	err = c.Create(context.TODO(), instance)
-	// The instance object may not be a valid object because it might be missing some required fields.
-	// Please modify the instance object by adding required fields and then remove the following if statement.
-	if apierrors.IsInvalid(err) {
-		t.Logf("failed to create object, got an invalid object error: %v", err)
-		return
-	}
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	defer c.Delete(context.TODO(), instance)
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-
-	deploy := &appsv1.Deployment{}
-	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
-		Should(gomega.Succeed())
-
-	// Delete the Deployment and expect Reconcile to be called for Deployment deletion
-	g.Expect(c.Delete(context.TODO(), deploy)).NotTo(gomega.HaveOccurred())
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
-		Should(gomega.Succeed())
-
-	// Manually delete Deployment since GC isn't enabled in the test control plane
-	g.Eventually(func() error { return c.Delete(context.TODO(), deploy) }, timeout).
-		Should(gomega.MatchError("deployments.apps \"foo-deployment\" not found"))
-
-}
+	Context("when a NodeRollout is reconciled", func() {
+		BeforeEach(func() {
+			waitForReconcile(nodeRollout)
+			c.Get(
+				context.TODO(),
+				types.NamespacedName{
+					Name:      nodeRollout.GetName(),
+					Namespace: nodeRollout.GetNamespace(),
+				},
+				nodeRollout,
+			)
+		})
+	})
+})
