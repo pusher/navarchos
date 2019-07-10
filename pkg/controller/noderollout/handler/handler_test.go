@@ -47,6 +47,39 @@ var _ = Describe("Handler suite", func() {
 
 	const timeout = time.Second * 5
 	const consistentlyTimeout = time.Second
+
+	// checkForNodeReplacement checks if a NodeReplacement exists with the given
+	// name, an owner reference pointing to the given node, and the given priority
+	var checkForNodeReplacement = func(name string, owner *corev1.Node, priority int) {
+		nr := &navarchosv1alpha1.NodeReplacement{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+			},
+		}
+		m.Get(nr, timeout).Should(Succeed())
+
+		By("with the correct priority")
+		Expect(*nr.Spec.Priority).To(Equal(priority))
+
+		By("and an owner reference pointing to the Node")
+		Expect(nr.GetOwnerReferences()).To(ContainElement(Equal(utils.GetOwnerReferenceForNode(owner))))
+
+		By("and an owner reference pointing to the NodeRollout")
+		Expect(nr.GetOwnerReferences()).To(ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))))
+	}
+
+	var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
+		return &navarchosv1alpha1.NodeReplacement{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: node.Name,
+				OwnerReferences: []metav1.OwnerReference{
+					utils.GetOwnerReferenceForNode(node),
+					utils.GetOwnerReferenceForNodeRollout(nodeRollout),
+				},
+			},
+		}
+	}
+
 	BeforeEach(func() {
 		mgr, err := manager.New(cfg, manager.Options{})
 		Expect(err).NotTo(HaveOccurred())
@@ -82,4 +115,203 @@ var _ = Describe("Handler suite", func() {
 			&corev1.NodeList{},
 		)
 	})
+
+	Context("when the Handler function is called on a New NodeRollout", func() {
+		JustBeforeEach(func() {
+			result = h.Handle(nodeRollout)
+		})
+
+		Context("with NodeSelectors only", func() {
+			BeforeEach(func() {
+				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
+					// This is set by default, so unset before we handle the NodeRollout
+					nr.Spec.NodeNames = []navarchosv1alpha1.PriorityName{}
+					return nr
+				}, timeout).Should(Succeed())
+				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeNames", BeEmpty()))
+			})
+
+			PIt("creates a NodeReplacement for example-master-1", func() {
+				checkForNodeReplacement("example-master-1", masterNode1, 15)
+			})
+
+			PIt("creates a NodeReplacement for example-master-2", func() {
+				checkForNodeReplacement("example-master-2", masterNode2, 15)
+			})
+
+			PIt("creates a NodeReplacement for example-worker-1", func() {
+				checkForNodeReplacement("example-worker-1", workerNode1, 5)
+			})
+
+			PIt("creates a NodeReplacement for example-worker-2", func() {
+				checkForNodeReplacement("example-worker-2", workerNode2, 5)
+			})
+
+			It("does not create a NodeReplacement for example-other", func() {
+				nr := &navarchosv1alpha1.NodeReplacement{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "example-other",
+					},
+				}
+				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
+			})
+
+			PIt("populates the Result ReplacementsCreated field", func() {
+				Expect(result.ReplacementsCreated).To(ConsistOf(
+					"example-master-1",
+					"example-master-2",
+					"example-worker-1",
+					"example-worker-2",
+				))
+			})
+
+			PIt("sets the Result Phase to InProgress", func() {
+				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseInProgress))
+			})
+
+			It("does not set the Result ReplacementsCompleted field", func() {
+				Expect(result.ReplacementsCompleted).To(BeEmpty())
+			})
+
+			It("does not set the Result ReplacementsFailed field", func() {
+				Expect(result.ReplacementsFailed).To(BeEmpty())
+			})
+
+			It("does not set any error", func() {
+				Expect(result.ReplacementsCompletedError).To(BeNil())
+				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+			})
+		})
+
+		Context("with NodeNames only", func() {
+			BeforeEach(func() {
+				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
+					// This is set by default, so unset before we handle the NodeRollout
+					nr.Spec.NodeSelectors = []navarchosv1alpha1.PriorityLabelSelector{}
+					return nr
+				}, timeout).Should(Succeed())
+				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
+			})
+
+			PIt("creates a NodeReplacement for example-master-1", func() {
+				checkForNodeReplacement("example-master-1", masterNode1, 20)
+			})
+
+			It("does not create a NodeReplacement for example-master-2", func() {
+				nr := &navarchosv1alpha1.NodeReplacement{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "example-master-2",
+					},
+				}
+				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
+			})
+
+			PIt("creates a NodeReplacement for example-worker-1", func() {
+				checkForNodeReplacement("example-worker-1", workerNode1, 10)
+			})
+
+			It("does not create a NodeReplacement for example-worker-2", func() {
+				nr := &navarchosv1alpha1.NodeReplacement{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "example-worker-2",
+					},
+				}
+				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
+			})
+
+			It("does not create a NodeReplacement for example-other", func() {
+				nr := &navarchosv1alpha1.NodeReplacement{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "example-other",
+					},
+				}
+				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
+			})
+
+			PIt("populates the Result ReplacementsCreated field", func() {
+				Expect(result.ReplacementsCreated).To(ConsistOf(
+					"example-master-1",
+					"example-worker-1",
+				))
+			})
+
+			PIt("sets the Result Phase to InProgress", func() {
+				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseInProgress))
+			})
+
+			It("does not set the Result ReplacementsCompleted field", func() {
+				Expect(result.ReplacementsCompleted).To(BeEmpty())
+			})
+
+			It("does not set the Result ReplacementsFailed field", func() {
+				Expect(result.ReplacementsFailed).To(BeEmpty())
+			})
+
+			It("does not set any error", func() {
+				Expect(result.ReplacementsCompletedError).To(BeNil())
+				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+			})
+		})
+
+		Context("with NodeNames and NodeSelectors", func() {
+			BeforeEach(func() {
+				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeNames", Not(BeEmpty())))
+				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", Not(BeEmpty())))
+			})
+
+			PIt("creates a NodeReplacement for example-master-1", func() {
+				checkForNodeReplacement("example-master-1", masterNode1, 20)
+			})
+
+			PIt("creates a NodeReplacement for example-master-2", func() {
+				checkForNodeReplacement("example-master-2", masterNode2, 15)
+			})
+
+			PIt("creates a NodeReplacement for example-worker-1", func() {
+				checkForNodeReplacement("example-worker-1", workerNode1, 10)
+			})
+
+			PIt("creates a NodeReplacement for example-worker-2", func() {
+				checkForNodeReplacement("example-worker-2", workerNode2, 5)
+			})
+
+			It("does not create a NodeReplacement for example-other", func() {
+				nr := &navarchosv1alpha1.NodeReplacement{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "example-other",
+					},
+				}
+				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
+			})
+
+			PIt("populates the Result ReplacementsCreated field", func() {
+				Expect(result.ReplacementsCreated).To(ConsistOf(
+					"example-master-1",
+					"example-master-2",
+					"example-worker-1",
+					"example-worker-2",
+				))
+			})
+
+			PIt("sets the Result Phase to InProgress", func() {
+				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseInProgress))
+			})
+
+			It("does not set the Result ReplacementsCompleted field", func() {
+				Expect(result.ReplacementsCompleted).To(BeEmpty())
+			})
+
+			It("does not set the Result ReplacementsFailed field", func() {
+				Expect(result.ReplacementsFailed).To(BeEmpty())
+			})
+
+			It("does not set any error", func() {
+				Expect(result.ReplacementsCompletedError).To(BeNil())
+				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+			})
+		})
+	})
+
 })
