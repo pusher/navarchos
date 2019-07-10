@@ -481,4 +481,47 @@ var _ = Describe("Handler suite", func() {
 		})
 
 	})
+
+	Context("when the Handler function is called on a Failed NodeRollout", func() {
+		BeforeEach(func() {
+			m.Create(nodeReplacementFor(masterNode1)).Should(Succeed())
+			m.Create(nodeReplacementFor(masterNode2)).Should(Succeed())
+			m.Create(nodeReplacementFor(workerNode1)).Should(Succeed())
+			m.Create(nodeReplacementFor(workerNode2)).Should(Succeed())
+
+			// Set the NodeRollout as we expect it to be at this point
+			m.Update(nodeRollout, func(obj utils.Object) utils.Object {
+				nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
+				nr.Status.Phase = navarchosv1alpha1.RolloutPhaseFailed
+				nr.Status.ReplacementsCreated = []string{"example-master-1", "example-master-2", "example-worker-1", "example-worker-2"}
+				nr.Status.ReplacementsCreatedCount = len(nr.Status.ReplacementsCreated)
+				nr.Status.ReplacementsCompleted = []string{"example-master-2", "example-worker-1", "example-worker-2"}
+				nr.Status.ReplacementsCompletedCount = len(nr.Status.ReplacementsCompleted)
+				nr.Status.ReplacementsFailed = []string{"example-master-1"}
+				nr.Status.ReplacementsFailedCount = len(nr.Status.ReplacementsFailed)
+				return nr
+			}, timeout).Should(Succeed())
+			Expect(nodeRollout.Status.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseFailed))
+		})
+
+		JustBeforeEach(func() {
+			result = h.Handle(nodeRollout)
+		})
+
+		Context("and the NodeRollout is younger than the maximum age", func() {
+			It("does nothing", func() {
+				Expect(result).To(Equal(&status.Result{}))
+			})
+		})
+
+		Context("and the NodeRollout is older than the maximum age", func() {
+			BeforeEach(func() {
+				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(-maxNodeRolloutAge - time.Hour))
+			})
+
+			PIt("deletes the NodeRollout", func() {
+				m.Get(nodeRollout, timeout).ShouldNot(Succeed())
+			})
+		})
+	})
 })
