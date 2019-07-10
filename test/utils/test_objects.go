@@ -105,3 +105,10 @@ var ExampleNodeWorker2 = &corev1.Node{
 		},
 	},
 }
+
+// ExampleNodeReplacement represents an example NodeReplacement for use in tests
+var ExampleNodeReplacement = &navarchosv1alpha1.NodeReplacement{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "example",
+	},
+}
