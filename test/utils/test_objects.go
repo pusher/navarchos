@@ -127,4 +127,23 @@ var ExampleNodeReplacement = &navarchosv1alpha1.NodeReplacement{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "example",
 	},
+	Status: navarchosv1alpha1.NodeReplacementStatus{
+		Phase: navarchosv1alpha1.ReplacementPhaseNew,
+	},
+}
+
+// ExamplePod is an example of a Pod for use in test
+var ExamplePod = &corev1.Pod{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "example-pod",
+		Namespace: "default",
+	},
+	Spec: corev1.PodSpec{
+		Containers: []corev1.Container{
+			{
+				Name:  "pause",
+				Image: "k8s.gcr.io/pause",
+			},
+		},
+	},
 }

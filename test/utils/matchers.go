@@ -75,6 +75,24 @@ func (m *Matcher) Update(obj Object, fn UpdateFunc, intervals ...interface{}) go
 	return gomega.Eventually(update, intervals...)
 }
 
+// UpdateStatus udpates the object's status subresource on the API server by
+// fetching the object and applying a mutating UpdateFunc before sending the
+// update
+func (m *Matcher) UpdateStatus(obj Object, fn UpdateFunc, intervals ...interface{}) gomega.GomegaAsyncAssertion {
+	key := types.NamespacedName{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
+	}
+	update := func() error {
+		err := m.Client.Get(context.TODO(), key, obj)
+		if err != nil {
+			return err
+		}
+		return m.Client.Status().Update(context.TODO(), fn(obj))
+	}
+	return gomega.Eventually(update, intervals...)
+}
+
 // Get gets the object from the API server
 func (m *Matcher) Get(obj Object, intervals ...interface{}) gomega.GomegaAsyncAssertion {
 	key := types.NamespacedName{
@@ -149,6 +167,17 @@ func (m *Matcher) eventuallyList(obj runtime.Object, intervals ...interface{}) g
 	return gomega.Eventually(list, intervals...)
 }
 
+// WithListItems returns the items of the list
+func WithListItems(matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj runtime.Object) []runtime.Object {
+		items, err := meta.ExtractList(obj)
+		if err != nil {
+			panic(err)
+		}
+		return items
+	}, matcher)
+}
+
 // WithNodeRolloutSpecField gets the value of the named field from the
 // NodeRollouts Spec
 func WithNodeRolloutSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
@@ -174,6 +203,16 @@ func WithNodeRolloutStatusField(field string, matcher gtypes.GomegaMatcher) gtyp
 func WithNodeRolloutConditionField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
 	return gomega.WithTransform(func(obj navarchosv1alpha1.NodeRolloutCondition) interface{} {
 		r := reflect.ValueOf(obj)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
+// WithNodeReplacementSpecField gets the value of the named field from the
+// NodeReplacments Spec
+func WithNodeReplacementSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *navarchosv1alpha1.NodeReplacement) interface{} {
+		r := reflect.ValueOf(obj.Spec)
 		f := reflect.Indirect(r).FieldByName(field)
 		return f.Interface()
 	}, matcher)
