@@ -121,9 +121,9 @@ var _ = Describe("Handler suite", func() {
 		m.Eventually(&corev1.PodList{}, timeout).Should(utils.WithListItems(BeEmpty()))
 	})
 
-	Context("when the Handler function is called on a New NodeReplacement", func() {
+	Context("when the Handler is called on a New NodeReplacement", func() {
 		JustBeforeEach(func() {
-			result = h.Handle(nodeReplacement)
+			result = h.HandleNew(nodeReplacement)
 		})
 
 		Context("if a another NodeReplacement is higher priority", func() {
@@ -207,7 +207,7 @@ var _ = Describe("Handler suite", func() {
 
 	})
 
-	Context("when the Handler function is called on an InProgress NodeReplacement", func() {
+	Context("when the Handler is called on an InProgress NodeReplacement", func() {
 		BeforeEach(func() {
 			// Set the NodeReplacement as we expect it to be at this point
 			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
@@ -221,49 +221,7 @@ var _ = Describe("Handler suite", func() {
 		})
 
 		JustBeforeEach(func() {
-			result = h.Handle(nodeReplacement)
-		})
-	})
-
-	Context("when the Handler function is called on a Completed NodeReplacement", func() {
-		BeforeEach(func() {
-			// Set the NodeReplacement as we expect it to be at this point
-			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
-				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-				nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
-				nr.Status.NodePods = []string{}
-				nr.Status.NodePodsCount = len(nr.Status.NodePods)
-				nr.Status.EvictedPods = nr.Status.NodePods
-				nr.Status.EvictedPodsCount = len(nr.Status.EvictedPods)
-				return nr
-			}, timeout).Should(Succeed())
-			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseCompleted))
-		})
-
-		JustBeforeEach(func() {
-			result = h.Handle(nodeReplacement)
-		})
-	})
-
-	Context("when the Handler function is called on a Failed NodeReplacement", func() {
-		BeforeEach(func() {
-			// Set the NodeReplacement as we expect it to be at this point
-			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
-				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-				nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseFailed
-				nr.Status.NodePods = []string{}
-				nr.Status.NodePodsCount = len(nr.Status.NodePods)
-				nr.Status.EvictedPods = []string{}
-				nr.Status.EvictedPodsCount = len(nr.Status.EvictedPods)
-				nr.Status.FailedPods = []navarchosv1alpha1.PodReason{}
-				nr.Status.FailedPodsCount = len(nr.Status.FailedPods)
-				return nr
-			}, timeout).Should(Succeed())
-			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseFailed))
-		})
-
-		JustBeforeEach(func() {
-			result = h.Handle(nodeReplacement)
+			result = h.HandleInProgress(nodeReplacement)
 		})
 	})
 })

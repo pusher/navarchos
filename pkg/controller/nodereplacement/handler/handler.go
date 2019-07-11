@@ -16,8 +16,14 @@ func NewNodeReplacementHandler(c client.Client) *NodeReplacementHandler {
 	return &NodeReplacementHandler{client: c}
 }
 
-// Handle performs the business logic of the NodeReplacement and returns information
-// in a Result
-func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
+// HandleNew performs the business logic of a New NodeReplacement and returns
+// information in a Result
+func (h *NodeReplacementHandler) HandleNew(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
+	return &status.Result{}
+}
+
+// HandleInProgress performs the business logic of an InProgress NodeReplacemen
+// and returns information in a Result
+func (h *NodeReplacementHandler) HandleInProgress(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
 	return &status.Result{}
 }
