@@ -125,6 +125,86 @@ var _ = Describe("Handler suite", func() {
 		JustBeforeEach(func() {
 			result = h.Handle(nodeReplacement)
 		})
+
+		Context("if a another NodeReplacement is higher priority", func() {
+			BeforeEach(func() {
+				highPriorityNR := utils.ExampleNodeReplacement.DeepCopy()
+				highPriorityNR.SetName("high-priority")
+				highPriorityNR.Spec.Priority = intPtr(10)
+				highPriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
+				m.Create(highPriorityNR).Should(Succeed())
+				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+					nr.Spec.Priority = intPtr(0)
+					return nr
+				}, timeout).Should(Succeed())
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("Priority", Equal(intPtr(0))))
+				Expect(*highPriorityNR.Spec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.Priority))
+			})
+
+			PIt("requeues the NodeReplacement", func() {
+				Expect(result.Requeue).To(BeTrue())
+				Expect(result.RequeueReason).To(Equal("NodeReplacement \"high-priority\" has a higher priority"))
+			})
+
+			It("does not set the Result NodePods field", func() {
+				Expect(result.NodePods).To(BeEmpty())
+			})
+		})
+
+		Context("if a another NodeReplacement is the same priority", func() {
+			BeforeEach(func() {
+				samePriorityNR := utils.ExampleNodeReplacement.DeepCopy()
+				samePriorityNR.SetName("same-priority")
+				samePriorityNR.Spec.Priority = intPtr(10)
+				samePriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
+				m.Create(samePriorityNR).Should(Succeed())
+				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+					nr.Spec.Priority = intPtr(10)
+					return nr
+				}, timeout).Should(Succeed())
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("Priority", Equal(intPtr(10))))
+				Expect(*samePriorityNR.Spec.Priority).To(BeNumerically("==", *nodeReplacement.Spec.Priority))
+			})
+
+			It("does not requeue the NodeReplacement", func() {
+				Expect(result.Requeue).To(BeFalse())
+				Expect(result.RequeueReason).To(BeEmpty())
+			})
+
+			PIt("sets the Result NodePods field to contain a list of pods on the node", func() {
+				Expect(result.NodePods).To(ConsistOf(
+					"pod-1",
+					"pod-2",
+					"pod-3",
+				))
+			})
+
+			PIt("sets the Result Phase field to InProgress", func() {
+				Expect(result.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseInProgress))
+			})
+		})
+
+		Context("if a another NodeReplacement is in Phase InProgress", func() {
+			BeforeEach(func() {
+				highPriorityNR := utils.ExampleNodeReplacement.DeepCopy()
+				highPriorityNR.SetName("in-progress")
+				highPriorityNR.Status.Phase = navarchosv1alpha1.ReplacementPhaseInProgress
+				highPriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
+				m.Create(highPriorityNR).Should(Succeed())
+			})
+
+			PIt("requeues the NodeReplacement", func() {
+				Expect(result.Requeue).To(BeTrue())
+				Expect(result.RequeueReason).To(Equal("NodeReplacement \"in-progress\" is already in-progress"))
+			})
+
+			It("does not set the Result NodePods field", func() {
+				Expect(result.NodePods).To(BeEmpty())
+			})
+		})
+
 	})
 
 	Context("when the Handler function is called on an InProgress NodeReplacement", func() {
@@ -187,3 +267,7 @@ var _ = Describe("Handler suite", func() {
 		})
 	})
 })
+
+func intPtr(i int) *int {
+	return &i
+}
