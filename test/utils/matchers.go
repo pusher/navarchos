@@ -107,6 +107,14 @@ func (m *Matcher) Get(obj Object, intervals ...interface{}) gomega.GomegaAsyncAs
 	return gomega.Eventually(get, intervals...)
 }
 
+// List gets the list object from the API server
+func (m *Matcher) List(obj runtime.Object, opts *client.ListOptions, intervals ...interface{}) gomega.GomegaAsyncAssertion {
+	list := func() error {
+		return m.Client.List(context.TODO(), opts, obj)
+	}
+	return gomega.Eventually(list, intervals...)
+}
+
 // Consistently continually gets the object from the API for comparison
 func (m *Matcher) Consistently(obj Object, intervals ...interface{}) gomega.GomegaAsyncAssertion {
 	return m.consistentlyObject(obj, intervals...)

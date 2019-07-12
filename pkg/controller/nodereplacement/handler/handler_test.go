@@ -109,10 +109,11 @@ var _ = Describe("Handler suite", func() {
 		close(stopMgr)
 		mgrStopped.Wait()
 
-		m.UpdateStatus(pod1, setPodSucceeded, timeout).Should(Succeed())
-		m.UpdateStatus(pod2, setPodSucceeded, timeout).Should(Succeed())
-		m.UpdateStatus(pod3, setPodSucceeded, timeout).Should(Succeed())
-		m.UpdateStatus(pod4, setPodSucceeded, timeout).Should(Succeed())
+		pods := &corev1.PodList{}
+		m.List(pods, &client.ListOptions{}).Should(Succeed())
+		for _, pod := range pods.Items {
+			m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
+		}
 
 		utils.DeleteAll(cfg, timeout,
 			&navarchosv1alpha1.NodeReplacementList{},
