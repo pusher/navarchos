@@ -26,7 +26,9 @@ import (
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
 	"github.com/pusher/navarchos/test/utils"
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -258,15 +260,70 @@ var _ = Describe("Handler suite", func() {
 			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
 				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
 				nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseInProgress
-				nr.Status.NodePods = []string{}
+				nr.Status.NodePods = []string{"pod-1", "pod-2", "pod-3"}
 				nr.Status.NodePodsCount = len(nr.Status.NodePods)
 				return nr
 			}, timeout).Should(Succeed())
 			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseInProgress))
 		})
 
-		JustBeforeEach(func() {
+		// Since HandleInProgress could take some time, we set a timeout
+		JustBeforeEach(func(done Done) {
 			result = h.HandleInProgress(nodeReplacement)
+			close(done)
+		}, 2*timeout.Seconds())
+
+		Context("when a Pod Disruption Budget blocks eviction of a pod", func() {
+			var pdb *policyv1beta1.PodDisruptionBudget
+			BeforeEach(func() {
+				pdb = utils.ExamplePodDisruptionBudget.DeepCopy()
+				m.Create(pdb).Should(Succeed())
+				m.Update(pod1, func(obj utils.Object) utils.Object {
+					pod, _ := obj.(*corev1.Pod)
+					// Ensure the Pod matches the PDB LabelSelector
+					labels := pod.GetLabels()
+					if labels == nil {
+						labels = make(map[string]string)
+					}
+					for k, v := range pdb.Spec.Selector.MatchLabels {
+						labels[k] = v
+					}
+					pod.SetLabels(labels)
+					return pod
+				}, timeout).Should(Succeed())
+			})
+
+			Context("permanently", func() {
+				PIt("fails the eviction of the Pod", func() {
+					Expect(result.FailedPods).To(ConsistOf(
+						navarchosv1alpha1.PodReason{
+							Name:   "pod-1",
+							Reason: "evicting pod blocked by disruption budget",
+						},
+					))
+				})
+			})
+
+			Context("temporarily", func() {
+				BeforeEach(func() {
+					// Ensure we update the PDB while the handler is running
+					go func() {
+						defer GinkgoRecover()
+						time.Sleep(2 * time.Second)
+						m.Update(pdb, func(obj utils.Object) utils.Object {
+							p, _ := obj.(*policyv1beta1.PodDisruptionBudget)
+							one := intstr.FromInt(1)
+							p.Spec.MaxUnavailable = &one
+							return p
+						}, timeout-2*time.Second).Should(Succeed())
+					}()
+				})
+
+				PIt("retries the eviction until it passes", func() {
+					Expect(result.FailedPods).To(BeEmpty())
+					Expect(result.EvictedPods).To(ContainElement(Equal("pod-1")))
+				})
+			})
 		})
 	})
 })

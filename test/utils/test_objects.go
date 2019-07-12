@@ -20,7 +20,9 @@ import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func intPtr(i int) *int {
@@ -175,6 +177,24 @@ var ExampleDaemonSet = &appsv1.DaemonSet{
 						Image: "k8s.gcr.io/pause",
 					},
 				},
+			},
+		},
+	},
+}
+
+var intStr0 = intstr.FromInt(0)
+
+// ExamplePodDisruptionBudget is an example PodDisruptionBudget for use in tests
+var ExamplePodDisruptionBudget = policyv1beta1.PodDisruptionBudget{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "example-pdb",
+		Namespace: "default",
+	},
+	Spec: policyv1beta1.PodDisruptionBudgetSpec{
+		MaxUnavailable: &intStr0,
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"block-eviction": "true",
 			},
 		},
 	},
