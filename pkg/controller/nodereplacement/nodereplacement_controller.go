@@ -46,7 +46,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNodeReplacement{Client: mgr.GetClient(), handler: handler.NewNodeReplacementHandler(mgr.GetClient()), scheme: mgr.GetScheme()}
+	h := handler.NewNodeReplacementHandler(mgr.GetClient(), &handler.Options{})
+	return &ReconcileNodeReplacement{Client: mgr.GetClient(), handler: h, scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
