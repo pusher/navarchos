@@ -292,6 +292,10 @@ var _ = Describe("Handler suite", func() {
 			Expect(result.FailedPods).To(BeEmpty())
 		})
 
+		PIt("deletes the node", func() {
+			m.Get(workerNode1, timeout).ShouldNot(Succeed())
+		})
+
 		Context("if a Pod has already been evicted", func() {
 			BeforeEach(func() {
 				nodeReplacement.Status.NodePods = append(nodeReplacement.Status.NodePods, "evicted-pod")
@@ -335,6 +339,10 @@ var _ = Describe("Handler suite", func() {
 							Reason: "evicting pod blocked by disruption budget",
 						},
 					))
+				})
+
+				It("does not delete the node", func() {
+					m.Consistently(workerNode1).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
 				})
 			})
 
