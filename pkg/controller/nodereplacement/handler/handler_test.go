@@ -205,6 +205,51 @@ var _ = Describe("Handler suite", func() {
 			})
 		})
 
+		PIt("should cordon the node", func() {
+			m.Eventually(workerNode1, timeout).Should(utils.WithNodeSpecField("Unschedulable", BeTrue()))
+			m.Eventually(workerNode1, timeout).Should(utils.WithNodeSpecField("Taints",
+				ContainElement(SatisfyAll(
+					utils.WithTaintField("Effect", Equal("NoSchedule")),
+					utils.WithTaintField("Key", Equal("node.kubernetes.io/unschedulable")),
+				)),
+			))
+		})
+
+		PIt("should list all Pods in the Result NodePods field", func() {
+			Expect(result.NodePods).To(ConsistOf(
+				"pod-1",
+				"pod-2",
+				"pod-3",
+			))
+		})
+
+		It("should not set any Pods in the EvictedPods field", func() {
+			Expect(result.EvictedPods).To(BeEmpty())
+		})
+
+		It("should not evict any pods", func() {
+			for _, pod := range []*corev1.Pod{pod1, pod2, pod3, pod4} {
+				m.Consistently(pod).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+			}
+		})
+
+		Context("when a pod is owned by a DeamonSet", func() {
+			BeforeEach(func() {
+				ds := utils.ExampleDaemonSet.DeepCopy()
+				m.Create(ds).Should(Succeed())
+				m.Update(pod1, func(obj utils.Object) utils.Object {
+					pod, _ := obj.(*corev1.Pod)
+					pod.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForDaemonSet(ds)})
+					return pod
+				}, timeout).Should(Succeed())
+			})
+
+			PIt("should ignore the DaemonSet managed Pod", func() {
+				Expect(result.IgnoredPods).To(ConsistOf(
+					navarchosv1alpha1.PodReason{Name: "pod-1", Reason: "pod owned by a DaemonSet"},
+				))
+			})
+		})
 	})
 
 	Context("when the Handler is called on an InProgress NodeReplacement", func() {

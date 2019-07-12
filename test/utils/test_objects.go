@@ -18,12 +18,17 @@ package utils
 
 import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func intPtr(i int) *int {
 	return &i
+}
+
+var exampleApp = map[string]string{
+	"app": "example",
 }
 
 // ExampleNodeRollout represents an example NodeRollout for use in tests
@@ -143,6 +148,33 @@ var ExamplePod = &corev1.Pod{
 			{
 				Name:  "pause",
 				Image: "k8s.gcr.io/pause",
+			},
+		},
+	},
+}
+
+// ExampleDaemonSet is an example Daemonset for use in tests
+var ExampleDaemonSet = &appsv1.DaemonSet{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "example-daemonset",
+		Namespace: "default",
+		Labels:    exampleApp,
+	},
+	Spec: appsv1.DaemonSetSpec{
+		Selector: &metav1.LabelSelector{
+			MatchLabels: exampleApp,
+		},
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: exampleApp,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "pause",
+						Image: "k8s.gcr.io/pause",
+					},
+				},
 			},
 		},
 	},

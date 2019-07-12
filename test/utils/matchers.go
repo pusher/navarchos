@@ -18,11 +18,13 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/onsi/gomega"
 	gtypes "github.com/onsi/gomega/types"
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -178,6 +180,26 @@ func WithListItems(matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
 	}, matcher)
 }
 
+// WithObjectMetaField gets the value of the named field from the Nodes Spec
+func WithObjectMetaField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj metav1.Object) interface{} {
+		r := reflect.ValueOf(obj).MethodByName(fmt.Sprintf("Get%s", field))
+		// All Getters take no arguments
+		response := r.Call([]reflect.Value{})
+		// All Getters return 1 argument
+		return response[0].Interface()
+	}, matcher)
+}
+
+// WithNodeSpecField gets the value of the named field from the Nodes Spec
+func WithNodeSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *corev1.Node) interface{} {
+		r := reflect.ValueOf(obj.Spec)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
 // WithNodeRolloutSpecField gets the value of the named field from the
 // NodeRollouts Spec
 func WithNodeRolloutSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
@@ -232,6 +254,15 @@ func WithNodeReplacementStatusField(field string, matcher gtypes.GomegaMatcher) 
 // NodeReplacementCondition
 func WithNodeReplacementConditionField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
 	return gomega.WithTransform(func(obj navarchosv1alpha1.NodeReplacementCondition) interface{} {
+		r := reflect.ValueOf(obj)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
+// WithTaintField gets the value of the named field from the Taint
+func WithTaintField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *corev1.Taint) interface{} {
 		r := reflect.ValueOf(obj)
 		f := reflect.Indirect(r).FieldByName(field)
 		return f.Interface()
