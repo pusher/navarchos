@@ -273,6 +273,39 @@ var _ = Describe("Handler suite", func() {
 			close(done)
 		}, 2*timeout.Seconds())
 
+		PIt("evicts all pods in the NodePods list", func() {
+			for _, pod := range []*corev1.Pod{pod1, pod2, pod3} {
+				m.Eventually(pod, timeout).ShouldNot(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+			}
+		})
+
+		It("does not evict pods not listed in the NodePods list", func() {
+			m.Consistently(pod4, consistentlyTimeout).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+		})
+
+		PIt("adds evicted pods to the Result EvictedPods field", func() {
+			Expect(result.EvictedPods).To(ConsistOf("pod-1", "pod-2", "pod-3"))
+		})
+
+		It("does not add any pods to the Result FailedPods field", func() {
+			Expect(result.FailedPods).To(BeEmpty())
+		})
+
+		Context("if a Pod has already been evicted", func() {
+			BeforeEach(func() {
+				nodeReplacement.Status.NodePods = append(nodeReplacement.Status.NodePods, "evicted-pod")
+				nodeReplacement.Status.EvictedPods = append(nodeReplacement.Status.EvictedPods, "evicted-pod")
+			})
+
+			It("does not list it in the Result EvictedPods field", func() {
+				Expect(result.EvictedPods).ToNot(ContainElement(Equal("evicted-pod")))
+			})
+
+			It("does not list it in the Result FailedPods field", func() {
+				Expect(result.FailedPods).To(BeEmpty())
+			})
+		})
+
 		Context("when a Pod Disruption Budget blocks eviction of a pod", func() {
 			var pdb *policyv1beta1.PodDisruptionBudget
 			BeforeEach(func() {
