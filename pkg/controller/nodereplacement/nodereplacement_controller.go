@@ -21,11 +21,13 @@ import (
 	"fmt"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	"github.com/pusher/navarchos/pkg/controller/nodereplacement/handler"
+	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	watchhandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -44,7 +46,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNodeReplacement{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileNodeReplacement{Client: mgr.GetClient(), handler: handler.NewNodeReplacementHandler(mgr.GetClient()), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -56,7 +58,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to NodeReplacement
-	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeReplacement{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeReplacement{}}, &watchhandler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -69,7 +71,8 @@ var _ reconcile.Reconciler = &ReconcileNodeReplacement{}
 // ReconcileNodeReplacement reconciles a NodeReplacement object
 type ReconcileNodeReplacement struct {
 	client.Client
-	scheme *runtime.Scheme
+	handler *handler.NodeReplacementHandler
+	scheme  *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a NodeReplacement object and makes changes based on the state read
@@ -91,5 +94,11 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{}, fmt.Errorf("Method not implemented")
+	result := r.handler.Handle(instance)
+	err = status.UpdateStatus(r.Client, instance, result)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
+	}
+
+	return reconcile.Result{}, nil
 }

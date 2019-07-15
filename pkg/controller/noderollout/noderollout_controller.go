@@ -21,11 +21,13 @@ import (
 	"fmt"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	"github.com/pusher/navarchos/pkg/controller/noderollout/handler"
+	"github.com/pusher/navarchos/pkg/controller/noderollout/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
+	watchhandler "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -44,7 +46,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNodeRollout{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileNodeRollout{Client: mgr.GetClient(), handler: handler.NewNodeRolloutHandler(mgr.GetClient()), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -56,13 +58,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to NodeRollout
-	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeRollout{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeRollout{}}, &watchhandler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// Watch for NodeReplacements created by NodeRollout
-	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeReplacement{}}, &handler.EnqueueRequestForOwner{
+	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeReplacement{}}, &watchhandler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &navarchosv1alpha1.NodeRollout{},
 	})
@@ -78,7 +80,8 @@ var _ reconcile.Reconciler = &ReconcileNodeRollout{}
 // ReconcileNodeRollout reconciles a NodeRollout object
 type ReconcileNodeRollout struct {
 	client.Client
-	scheme *runtime.Scheme
+	handler *handler.NodeRolloutHandler
+	scheme  *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a NodeRollout object and makes changes based on the state read
@@ -100,5 +103,11 @@ func (r *ReconcileNodeRollout) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{}, fmt.Errorf("Method not implemented")
+	result := r.handler.Handle(instance)
+	err = status.UpdateStatus(r.Client, instance, result)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
+	}
+
+	return reconcile.Result{}, nil
 }
