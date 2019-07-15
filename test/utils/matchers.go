@@ -18,11 +18,13 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/onsi/gomega"
 	gtypes "github.com/onsi/gomega/types"
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,6 +77,24 @@ func (m *Matcher) Update(obj Object, fn UpdateFunc, intervals ...interface{}) go
 	return gomega.Eventually(update, intervals...)
 }
 
+// UpdateStatus udpates the object's status subresource on the API server by
+// fetching the object and applying a mutating UpdateFunc before sending the
+// update
+func (m *Matcher) UpdateStatus(obj Object, fn UpdateFunc, intervals ...interface{}) gomega.GomegaAsyncAssertion {
+	key := types.NamespacedName{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
+	}
+	update := func() error {
+		err := m.Client.Get(context.TODO(), key, obj)
+		if err != nil {
+			return err
+		}
+		return m.Client.Status().Update(context.TODO(), fn(obj))
+	}
+	return gomega.Eventually(update, intervals...)
+}
+
 // Get gets the object from the API server
 func (m *Matcher) Get(obj Object, intervals ...interface{}) gomega.GomegaAsyncAssertion {
 	key := types.NamespacedName{
@@ -85,6 +105,14 @@ func (m *Matcher) Get(obj Object, intervals ...interface{}) gomega.GomegaAsyncAs
 		return m.Client.Get(context.TODO(), key, obj)
 	}
 	return gomega.Eventually(get, intervals...)
+}
+
+// List gets the list object from the API server
+func (m *Matcher) List(obj runtime.Object, opts *client.ListOptions, intervals ...interface{}) gomega.GomegaAsyncAssertion {
+	list := func() error {
+		return m.Client.List(context.TODO(), opts, obj)
+	}
+	return gomega.Eventually(list, intervals...)
 }
 
 // Consistently continually gets the object from the API for comparison
@@ -149,6 +177,37 @@ func (m *Matcher) eventuallyList(obj runtime.Object, intervals ...interface{}) g
 	return gomega.Eventually(list, intervals...)
 }
 
+// WithListItems returns the items of the list
+func WithListItems(matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj runtime.Object) []runtime.Object {
+		items, err := meta.ExtractList(obj)
+		if err != nil {
+			panic(err)
+		}
+		return items
+	}, matcher)
+}
+
+// WithObjectMetaField gets the value of the named field from the Nodes Spec
+func WithObjectMetaField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj metav1.Object) interface{} {
+		r := reflect.ValueOf(obj).MethodByName(fmt.Sprintf("Get%s", field))
+		// All Getters take no arguments
+		response := r.Call([]reflect.Value{})
+		// All Getters return 1 argument
+		return response[0].Interface()
+	}, matcher)
+}
+
+// WithNodeSpecField gets the value of the named field from the Nodes Spec
+func WithNodeSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *corev1.Node) interface{} {
+		r := reflect.ValueOf(obj.Spec)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
 // WithNodeRolloutSpecField gets the value of the named field from the
 // NodeRollouts Spec
 func WithNodeRolloutSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
@@ -179,6 +238,16 @@ func WithNodeRolloutConditionField(field string, matcher gtypes.GomegaMatcher) g
 	}, matcher)
 }
 
+// WithNodeReplacementSpecField gets the value of the named field from the
+// NodeReplacments Spec
+func WithNodeReplacementSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *navarchosv1alpha1.NodeReplacement) interface{} {
+		r := reflect.ValueOf(obj.Spec)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
 // WithNodeReplacementStatusField gets the value of the named field from the
 // NodeReplacements Status
 func WithNodeReplacementStatusField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
@@ -193,6 +262,15 @@ func WithNodeReplacementStatusField(field string, matcher gtypes.GomegaMatcher) 
 // NodeReplacementCondition
 func WithNodeReplacementConditionField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
 	return gomega.WithTransform(func(obj navarchosv1alpha1.NodeReplacementCondition) interface{} {
+		r := reflect.ValueOf(obj)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
+// WithTaintField gets the value of the named field from the Taint
+func WithTaintField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *corev1.Taint) interface{} {
 		r := reflect.ValueOf(obj)
 		f := reflect.Indirect(r).FieldByName(field)
 		return f.Interface()

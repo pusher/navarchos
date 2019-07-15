@@ -18,12 +18,19 @@ package utils
 
 import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func intPtr(i int) *int {
 	return &i
+}
+
+var exampleApp = map[string]string{
+	"app": "example",
 }
 
 // ExampleNodeRollout represents an example NodeRollout for use in tests
@@ -126,5 +133,69 @@ var ExampleNodeOther = &corev1.Node{
 var ExampleNodeReplacement = &navarchosv1alpha1.NodeReplacement{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "example",
+	},
+	Status: navarchosv1alpha1.NodeReplacementStatus{
+		Phase: navarchosv1alpha1.ReplacementPhaseNew,
+	},
+}
+
+// ExamplePod is an example of a Pod for use in test
+var ExamplePod = &corev1.Pod{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "example-pod",
+		Namespace: "default",
+	},
+	Spec: corev1.PodSpec{
+		Containers: []corev1.Container{
+			{
+				Name:  "pause",
+				Image: "k8s.gcr.io/pause",
+			},
+		},
+	},
+}
+
+// ExampleDaemonSet is an example Daemonset for use in tests
+var ExampleDaemonSet = &appsv1.DaemonSet{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "example-daemonset",
+		Namespace: "default",
+		Labels:    exampleApp,
+	},
+	Spec: appsv1.DaemonSetSpec{
+		Selector: &metav1.LabelSelector{
+			MatchLabels: exampleApp,
+		},
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: exampleApp,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "pause",
+						Image: "k8s.gcr.io/pause",
+					},
+				},
+			},
+		},
+	},
+}
+
+var intStr0 = intstr.FromInt(0)
+
+// ExamplePodDisruptionBudget is an example PodDisruptionBudget for use in tests
+var ExamplePodDisruptionBudget = policyv1beta1.PodDisruptionBudget{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "example-pdb",
+		Namespace: "default",
+	},
+	Spec: policyv1beta1.PodDisruptionBudgetSpec{
+		MaxUnavailable: &intStr0,
+		Selector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"block-eviction": "true",
+			},
+		},
 	},
 }

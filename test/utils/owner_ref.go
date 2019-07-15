@@ -18,6 +18,7 @@ package utils
 
 import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -43,6 +44,19 @@ func GetOwnerReferenceForNodeRollout(nr *navarchosv1alpha1.NodeRollout) metav1.O
 		Kind:               "NodeRollout",
 		Name:               nr.Name,
 		UID:                nr.UID,
+		Controller:         &t,
+		BlockOwnerDeletion: &t,
+	}
+}
+
+// GetOwnerReferenceForDaemonSet constructs an owner reference for the DaemonSet given
+func GetOwnerReferenceForDaemonSet(ds *appsv1.DaemonSet) metav1.OwnerReference {
+	t := true
+	return metav1.OwnerReference{
+		APIVersion:         "apps/v1",
+		Kind:               "DaemonSet",
+		Name:               ds.Name,
+		UID:                ds.UID,
 		Controller:         &t,
 		BlockOwnerDeletion: &t,
 	}
