@@ -17,22 +17,100 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // NodeReplacementSpec defines the desired state of NodeReplacement
 type NodeReplacementSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Priority determines the priority of this NodeReplacement.
+	// Higher priorities should be replaced sooner.
+	Priority *int `json:"priority,omitempty"`
 }
+
+// NodeReplacementPhase determines the phase in which the NodeRollout currently is
+type NodeReplacementPhase string
+
+// The following ReplacementPhases enumerate all possible NodeReplacementPhases
+const (
+	ReplacementPhaseNew        NodeReplacementPhase = "New"
+	ReplacementPhaseInProgress NodeReplacementPhase = "InProgress"
+	ReplacementPhaseCompleted  NodeReplacementPhase = "Completed"
+	ReplacementPhaseFailed     NodeReplacementPhase = "Failed"
+)
 
 // NodeReplacementStatus defines the observed state of NodeReplacement
 type NodeReplacementStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Phase is used to determine which phase of the replacement cycle a Replacement
+	// is currently in.
+	Phase NodeReplacementPhase `json:"phase"`
+
+	// NodePods lists all pods on the node when the  controller cordoned it.
+	NodePods []string `json:"nodePods,omitempty"`
+
+	// NodePodsCount is the count of NodePods.
+	NodePodsCount int `json:"nodePodsCount,omitempty"`
+
+	// EvictedPods lists all pods successfully evicted by the controller.
+	EvictedPods []string `json:"evictedPods,omitempty"`
+
+	// EvictedPodsCount is the count of EvictedPods
+	EvictedPodsCount int `json:"evictedPodsCount,omitempty"`
+
+	// IgnoredPods lists all pods not being evicted by the controller.
+	// This should contain daemonset pods at the minimum.
+	IgnoredPods []PodReason `json:"ignoredPods,omitempty"`
+
+	// IgnoredPodsCount is the count of IgnoredPods.
+	IgnoredPodsCount int `json:"ignoredPodsCount,omitempty"`
+
+	// FailedPods lists all pods the controller has failed to evict.
+	FailedPods []PodReason `json:"failedPods,omitempty"`
+
+	// FailedPodsCount is the count of FailedPods.
+	FailedPodsCount int `json:"failedPodsCount,omitempty"`
+
+	// Conditions gives detailed condition information about the NodeReplacement
+	Conditions []NodeReplacementCondition `json:"conditions,omitempty"`
+}
+
+// PodReason is used to add details to a Pods eviction status
+type PodReason struct {
+	// Name is the name of the pod
+	Name string `json:"name"`
+
+	// Reason is the message to display to the user as to why this Pod is ignored/failed
+	Reason string `json:"reason"`
+}
+
+// NodeReplacementConditionType is the type of a NodeRolloutCondition
+type NodeReplacementConditionType string
+
+const (
+	// NodeCordonedType refers to whether the controller successfully managed to
+	// cordon the node.
+	NodeCordonedType NodeReplacementConditionType = "NodeCordoned"
+)
+
+// NodeReplacementCondition is a status condition for a NodeReplacement
+type NodeReplacementCondition struct {
+	// Type of this condition
+	Type NodeReplacementConditionType `json:"type"`
+
+	// Status of this condition
+	Status corev1.ConditionStatus `json:"status"`
+
+	// LastUpdateTime of this condition
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+
+	// LastTransitionTime of this condition
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+
+	// Reason for the current status of this condition
+	Reason string `json:"reason,omitempty"`
+
+	// Message associated with this condition
+	Message string `json:"message,omitempty"`
 }
 
 // +genclient

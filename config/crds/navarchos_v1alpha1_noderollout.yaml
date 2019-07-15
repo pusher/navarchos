@@ -27,8 +27,120 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            nodeNames:
+              description: NodeNames allows specific nodes to be requested for replacement
+                by name. The priority set on the name will be passed to the NodeReplacement.
+                NodeName priorities always override NodeSelector priorities.
+              items:
+                properties:
+                  name:
+                    type: string
+                  priority:
+                    format: int64
+                    type: integer
+                required:
+                - name
+                - priority
+                type: object
+              type: array
+            nodeSelectors:
+              description: NodeSelectors uses label selectors to select a group of
+                nodes. The priority set on the label selector will be passed to the
+                NodeReplacement. The highest priority of any matching LabelSelector
+                will be used,
+              items:
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      type: object
+                    type: array
+                  matchLabels:
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                  priority:
+                    format: int64
+                    type: integer
+                type: object
+              type: array
           type: object
         status:
+          properties:
+            conditions:
+              description: Conditions gives detailed condition information about the
+                NodeRollout
+              items:
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime of this condition
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    description: LastUpdateTime of this condition
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message associated with this condition
+                    type: string
+                  reason:
+                    description: Reason for the current status of this condition
+                    type: string
+                  status:
+                    description: Status of this condition
+                    type: string
+                  type:
+                    description: Type of this condition
+                    type: string
+                required:
+                - type
+                - status
+                type: object
+              type: array
+            phase:
+              description: Phase is used to determine which phase of the replacement
+                cycle a Rollout is currently in.
+              type: string
+            replacementsCompleted:
+              description: ReplacementsCompleted lists the names of all NodeReplacements
+                that have successfully replaced their node.
+              items:
+                type: string
+              type: array
+            replacementsCompletedCount:
+              description: ReplacementsCompletedCount is the count of ReplacementsCompleted.
+                This is used for printing in kubectl.
+              format: int64
+              type: integer
+            replacementsCreated:
+              description: ReplacementsCreated lists the names of all NodeReplacements
+                created by the controller for this NodeRollout.
+              items:
+                type: string
+              type: array
+            replacementsCreatedCount:
+              description: ReplacementsCreatedCount is the count of ReplacementsCreated.
+                This is used for printing in kubectl.
+              format: int64
+              type: integer
+            replacementsFailed:
+              description: ReplacementsFailed lists the names of all NodeReplacements
+                that have permanently failed to replace their node.
+              items:
+                type: string
+              type: array
+            replacementsFailedCount:
+              description: ReplacementsFailedCount is the count of ReplacementsFailed.
+                This is used for printing in kubectl.
+              format: int64
+              type: integer
+          required:
+          - phase
           type: object
   version: v1alpha1
 status:
