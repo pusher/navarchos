@@ -149,6 +149,16 @@ func (m *Matcher) eventuallyList(obj runtime.Object, intervals ...interface{}) g
 	return gomega.Eventually(list, intervals...)
 }
 
+// WithNodeRolloutSpecField gets the value of the named field from the
+// NodeRollouts Spec
+func WithNodeRolloutSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj *navarchosv1alpha1.NodeRollout) interface{} {
+		r := reflect.ValueOf(obj.Spec)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
 // WithNodeRolloutStatusField gets the value of the named field from the
 // NodeRollouts Status
 func WithNodeRolloutStatusField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {

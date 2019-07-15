@@ -72,6 +72,7 @@ var ExampleNodeMaster1 = &corev1.Node{
 		Name: "example-master-1",
 		Labels: map[string]string{
 			"node-role.kubernetes.io/master": "true",
+			"node-role.kubernetes.io/worker": "false",
 		},
 	},
 }
@@ -82,6 +83,7 @@ var ExampleNodeMaster2 = &corev1.Node{
 		Name: "example-master-2",
 		Labels: map[string]string{
 			"node-role.kubernetes.io/master": "true",
+			"node-role.kubernetes.io/worker": "false",
 		},
 	},
 }
@@ -92,6 +94,7 @@ var ExampleNodeWorker1 = &corev1.Node{
 		Name: "example-worker-1",
 		Labels: map[string]string{
 			"node-role.kubernetes.io/worker": "true",
+			"node-role.kubernetes.io/master": "false",
 		},
 	},
 }
@@ -102,6 +105,19 @@ var ExampleNodeWorker2 = &corev1.Node{
 		Name: "example-worker-2",
 		Labels: map[string]string{
 			"node-role.kubernetes.io/worker": "true",
+			"node-role.kubernetes.io/master": "false",
+		},
+	},
+}
+
+// ExampleNodeOther is an example Node for use in tests
+var ExampleNodeOther = &corev1.Node{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "example-other",
+		Labels: map[string]string{
+			"node-role.kubernetes.io/other":  "true",
+			"node-role.kubernetes.io/master": "false",
+			"node-role.kubernetes.io/worker": "false",
 		},
 	},
 }
