@@ -10,3 +10,14 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Don't check in dependencies
+vendor
+
+# Ignore built binaries
+bin/*
+
+# Ignore make outputs
+/navarchos
+release/
+.env
