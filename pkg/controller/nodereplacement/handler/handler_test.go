@@ -36,6 +36,7 @@ import (
 var _ = Describe("Handler suite", func() {
 	var m utils.Matcher
 	var h *NodeReplacementHandler
+	var opts *Options
 	var result *status.Result
 
 	var nodeReplacement *navarchosv1alpha1.NodeReplacement
@@ -80,6 +81,11 @@ var _ = Describe("Handler suite", func() {
 
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
+		grace := 5 * time.Second
+		opts = &Options{
+			EvictionGracePeriod: &grace,
+		}
+
 		// Create a node to act as owners for the NodeReplacements created
 		workerNode1 = utils.ExampleNodeWorker1.DeepCopy()
 		workerNode2 = utils.ExampleNodeWorker2.DeepCopy()
@@ -122,6 +128,10 @@ var _ = Describe("Handler suite", func() {
 		)
 
 		m.Eventually(&corev1.PodList{}, timeout).Should(utils.WithListItems(BeEmpty()))
+	})
+
+	JustBeforeEach(func() {
+		h = NewNodeReplacementHandler(m.Client, opts)
 	})
 
 	Context("when the Handler is called on a New NodeReplacement", func() {

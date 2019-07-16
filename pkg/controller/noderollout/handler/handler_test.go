@@ -33,6 +33,7 @@ import (
 var _ = Describe("Handler suite", func() {
 	var m utils.Matcher
 	var h *NodeRolloutHandler
+	var opts *Options
 	var result *status.Result
 
 	var nodeRollout *navarchosv1alpha1.NodeRollout
@@ -88,6 +89,8 @@ var _ = Describe("Handler suite", func() {
 
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
+		opts = &Options{}
+
 		nodeRollout = utils.ExampleNodeRollout.DeepCopy()
 		m.Create(nodeRollout).Should(Succeed())
 
@@ -114,6 +117,10 @@ var _ = Describe("Handler suite", func() {
 			&navarchosv1alpha1.NodeReplacementList{},
 			&corev1.NodeList{},
 		)
+	})
+
+	JustBeforeEach(func() {
+		h = NewNodeRolloutHandler(m.Client, opts)
 	})
 
 	Context("when the Handler function is called on a New NodeRollout", func() {
@@ -472,7 +479,7 @@ var _ = Describe("Handler suite", func() {
 
 		Context("and the NodeRollout is older than the maximum age", func() {
 			BeforeEach(func() {
-				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(-maxNodeRolloutAge - time.Hour))
+				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(-h.maxAge - time.Hour))
 			})
 
 			PIt("deletes the NodeRollout", func() {
@@ -516,7 +523,7 @@ var _ = Describe("Handler suite", func() {
 
 		Context("and the NodeRollout is older than the maximum age", func() {
 			BeforeEach(func() {
-				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(-maxNodeRolloutAge - time.Hour))
+				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(h.maxAge - time.Hour))
 			})
 
 			PIt("deletes the NodeRollout", func() {
