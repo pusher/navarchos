@@ -27,6 +27,7 @@ import (
 	"github.com/pusher/navarchos/test/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -52,27 +53,18 @@ var _ = Describe("Handler suite", func() {
 	// checkForNodeReplacement checks if a NodeReplacement exists with the given
 	// name, an owner reference pointing to the given node, and the given priority
 	var checkForNodeReplacement = func(name string, owner *corev1.Node, priority int) {
-		nr := &navarchosv1alpha1.NodeReplacement{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
-		}
-		m.Get(nr, timeout).Should(Succeed())
+		nrList := &navarchosv1alpha1.NodeReplacementList{}
+		m.List(nrList, &client.ListOptions{}, timeout).Should(Succeed())
 
-		By("with the correct priority")
-		Expect(*nr.Spec.Priority).To(Equal(priority))
-
-		By("with the correct NodeName")
-		Expect(nr.Spec.NodeName).To(Equal(owner.GetName()))
-
-		By("with the correct NodeUID")
-		Expect(nr.Spec.NodeUID).To(Equal(owner.GetUID()))
-
-		By("and an owner reference pointing to the Node")
-		Expect(nr.GetOwnerReferences()).To(ContainElement(Equal(utils.GetOwnerReferenceForNode(owner))))
-
-		By("and an owner reference pointing to the NodeRollout")
-		Expect(nr.GetOwnerReferences()).To(ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))))
+		Expect(nrList.Items).To(ContainElement(SatisfyAll(
+			utils.WithNodeReplacementSpecField("Priority", Equal(priority)),
+			utils.WithNodeReplacementSpecField("NodeName", Equal(owner.GetName())),
+			utils.WithNodeReplacementSpecField("NodeUID", Equal(owner.GetUID())),
+			utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
+				ContainElement(Equal(utils.GetOwnerReferenceForNode(owner))),
+				ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+			)),
+		)))
 	}
 
 	var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
