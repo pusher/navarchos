@@ -28,6 +28,14 @@ spec:
           type: object
         spec:
           properties:
+            nodeName:
+              description: NodeName should match the Name of the Node this NodeReplacement
+                intends to replace.
+              type: string
+            nodeUID:
+              description: NodeUID should match the UID of the Node this NodeReplacement
+                intends to replace.
+              type: string
             priority:
               description: Priority determines the priority of this NodeReplacement.
                 Higher priorities should be replaced sooner.

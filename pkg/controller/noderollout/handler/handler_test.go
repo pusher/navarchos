@@ -62,6 +62,12 @@ var _ = Describe("Handler suite", func() {
 		By("with the correct priority")
 		Expect(*nr.Spec.Priority).To(Equal(priority))
 
+		By("with the correct NodeName")
+		Expect(nr.Spec.NodeName).To(Equal(owner.GetName()))
+
+		By("with the correct NodeUID")
+		Expect(nr.Spec.NodeUID).To(Equal(owner.GetUID()))
+
 		By("and an owner reference pointing to the Node")
 		Expect(nr.GetOwnerReferences()).To(ContainElement(Equal(utils.GetOwnerReferenceForNode(owner))))
 

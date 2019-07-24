@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // NodeReplacementSpec defines the desired state of NodeReplacement
@@ -26,6 +27,14 @@ type NodeReplacementSpec struct {
 	// Priority determines the priority of this NodeReplacement.
 	// Higher priorities should be replaced sooner.
 	Priority *int `json:"priority,omitempty"`
+
+	// NodeName should match the Name of the Node this NodeReplacement intends to
+	// replace.
+	NodeName string `json:"nodeName,omitempty"`
+
+	// NodeUID should match the UID of the Node this NodeReplacement intends to
+	// replace.
+	NodeUID types.UID `json:"nodeUID,omitempty"`
 }
 
 // NodeReplacementPhase determines the phase in which the NodeRollout currently is
