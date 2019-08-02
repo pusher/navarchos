@@ -17,6 +17,7 @@ limitations under the License.
 package handler
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -70,7 +71,7 @@ var _ = Describe("Handler suite", func() {
 	var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
 		return &navarchosv1alpha1.NodeReplacement{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: node.Name,
+				GenerateName: fmt.Sprintf("%s-", node.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					utils.GetOwnerReferenceForNode(node),
 					utils.GetOwnerReferenceForNodeRollout(nodeRollout),
@@ -317,14 +318,73 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
 			})
 		})
+
+		Context("and NodeReplacements already exist for the nodes", func() {
+			var nrMaster1, nrWorker1 *navarchosv1alpha1.NodeReplacement
+
+			BeforeEach(func() {
+				By("setting the NodeReplacment to NodeNames only")
+				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
+					// This is set by default, so unset before we handle the NodeRollout
+					nr.Spec.NodeSelectors = []navarchosv1alpha1.PriorityLabelSelector{}
+					return nr
+				}, timeout).Should(Succeed())
+				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
+
+				By("creating NodeReplacements for the Nodes named in the NodeRollout")
+				nrMaster1 = nodeReplacementFor(masterNode1)
+				m.Create(nrMaster1).Should(Succeed())
+				nrWorker1 = nodeReplacementFor(workerNode1)
+				m.Create(nrWorker1).Should(Succeed())
+			})
+
+			PIt("should create new NodeReplacements for the nodes", func() {
+				nrList := &navarchosv1alpha1.NodeReplacementList{}
+				m.List(nrList, &client.ListOptions{}, timeout).Should(Succeed())
+
+				items := []*navarchosv1alpha1.NodeReplacement{}
+				for _, nr := range nrList.Items {
+					items = append(items, nr.DeepCopy())
+				}
+
+				Expect(items).To(SatisfyAll(
+					ContainElement(SatisfyAll(
+						utils.WithObjectMetaField("Name", Not(Equal(nrMaster1.GetName()))),
+						utils.WithNodeReplacementSpecField("Priority", Equal(20)),
+						utils.WithNodeReplacementSpecField("NodeName", Equal(masterNode1.GetName())),
+						utils.WithNodeReplacementSpecField("NodeUID", Equal(masterNode1.GetUID())),
+						utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
+							ContainElement(Equal(utils.GetOwnerReferenceForNode(masterNode1))),
+							ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+						)),
+					)),
+					ContainElement(SatisfyAll(
+						utils.WithObjectMetaField("Name", Not(Equal(nrWorker1.GetName()))),
+						utils.WithNodeReplacementSpecField("Priority", Equal(10)),
+						utils.WithNodeReplacementSpecField("NodeName", Equal(workerNode1.GetName())),
+						utils.WithNodeReplacementSpecField("NodeUID", Equal(workerNode1.GetUID())),
+						utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
+							ContainElement(Equal(utils.GetOwnerReferenceForNode(workerNode1))),
+							ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+						)),
+					)),
+				))
+			})
+		})
 	})
 
 	Context("when the Handler function is called on an InProgress NodeRollout", func() {
+		var nrMaster1, nrMaster2, nrWorker1, nrWorker2 *navarchosv1alpha1.NodeReplacement
 		BeforeEach(func() {
-			m.Create(nodeReplacementFor(masterNode1)).Should(Succeed())
-			m.Create(nodeReplacementFor(masterNode2)).Should(Succeed())
-			m.Create(nodeReplacementFor(workerNode1)).Should(Succeed())
-			m.Create(nodeReplacementFor(workerNode2)).Should(Succeed())
+			nrMaster1 = nodeReplacementFor(masterNode1)
+			nrMaster2 = nodeReplacementFor(masterNode2)
+			nrWorker1 = nodeReplacementFor(workerNode1)
+			nrWorker2 = nodeReplacementFor(workerNode2)
+			m.Create(nrMaster1).Should(Succeed())
+			m.Create(nrMaster2).Should(Succeed())
+			m.Create(nrWorker1).Should(Succeed())
+			m.Create(nrWorker2).Should(Succeed())
 
 			// Set the NodeRollout as we expect it to be at this point
 			m.Update(nodeRollout, func(obj utils.Object) utils.Object {
@@ -353,7 +413,7 @@ var _ = Describe("Handler suite", func() {
 
 		Context("if a NodeReplacement has been marked as Completed", func() {
 			BeforeEach(func() {
-				m.Update(nodeReplacementFor(masterNode1), func(obj utils.Object) utils.Object {
+				m.Update(nrMaster1, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
 					nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 					return nr
@@ -371,7 +431,7 @@ var _ = Describe("Handler suite", func() {
 
 		Context("if a NodeReplacement has been marked as failed", func() {
 			BeforeEach(func() {
-				m.Update(nodeReplacementFor(masterNode1), func(obj utils.Object) utils.Object {
+				m.Update(nrMaster1, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
 					nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseFailed
 					return nr
@@ -389,8 +449,8 @@ var _ = Describe("Handler suite", func() {
 
 		Context("once all NodeReplacements are marked as Completed or Failed", func() {
 			BeforeEach(func() {
-				for _, node := range []*corev1.Node{masterNode1, masterNode2, workerNode1, workerNode2} {
-					m.Update(nodeReplacementFor(node), func(obj utils.Object) utils.Object {
+				for _, nr := range []*navarchosv1alpha1.NodeReplacement{nrMaster1, nrMaster2, nrWorker1, nrWorker2} {
+					m.Update(nr, func(obj utils.Object) utils.Object {
 						nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
 						nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 						return nr
