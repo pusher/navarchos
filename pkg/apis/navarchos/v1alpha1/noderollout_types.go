@@ -79,17 +79,20 @@ type NodeRolloutStatus struct {
 	ReplacementsCompletedCount int `json:"replacementsCompletedCount,omitempty"`
 
 	// Conditions gives detailed condition information about the NodeRollout
-	Conditions []NodeReplacementCondition `json:"conditions,omitempty"`
+	Conditions []NodeRolloutCondition `json:"conditions,omitempty"`
 }
 
 // NodeRolloutConditionType is the type of a NodeRolloutCondition
 type NodeRolloutConditionType string
 
 const (
-	// ReplacementsCreatedType referes to whether the controller successfully
+	// ReplacementsCreatedType refers to whether the controller successfully
 	// created all of the required NodeRollouts
 	ReplacementsCreatedType NodeRolloutConditionType = "ReplacementsCreated"
 )
+
+// NodeRolloutConditionReason represents a valid condition reason for a NodeRollout
+// type NodeRolloutConditionReason string
 
 // NodeRolloutCondition is a status condition for a NodeRollout
 type NodeRolloutCondition struct {
