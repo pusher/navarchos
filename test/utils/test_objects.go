@@ -39,9 +39,11 @@ var ExampleNodeRollout = &navarchosv1alpha1.NodeRollout{
 		Name: "example",
 	},
 	Spec: navarchosv1alpha1.NodeRolloutSpec{
-		NodeSelectors: []navarchosv1alpha1.PriorityLabelSelector{
+		NodeSelectors: []navarchosv1alpha1.NodeLabelSelector{
 			{
-				Priority: intPtr(15),
+				ReplacementSpec: navarchosv1alpha1.ReplacementSpec{
+					Priority: intPtr(15),
+				},
 				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"node-role.kubernetes.io/master": "true",
@@ -49,7 +51,9 @@ var ExampleNodeRollout = &navarchosv1alpha1.NodeRollout{
 				},
 			},
 			{
-				Priority: intPtr(5),
+				ReplacementSpec: navarchosv1alpha1.ReplacementSpec{
+					Priority: intPtr(5),
+				},
 				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"node-role.kubernetes.io/worker": "true",
@@ -57,14 +61,18 @@ var ExampleNodeRollout = &navarchosv1alpha1.NodeRollout{
 				},
 			},
 		},
-		NodeNames: []navarchosv1alpha1.PriorityName{
+		NodeNames: []navarchosv1alpha1.NodeName{
 			{
-				Name:     "example-master-1",
-				Priority: intPtr(20),
+				Name: "example-master-1",
+				ReplacementSpec: navarchosv1alpha1.ReplacementSpec{
+					Priority: intPtr(20),
+				},
 			},
 			{
-				Name:     "example-worker-1",
-				Priority: intPtr(10),
+				Name: "example-worker-1",
+				ReplacementSpec: navarchosv1alpha1.ReplacementSpec{
+					Priority: intPtr(10),
+				},
 			},
 		},
 	},
