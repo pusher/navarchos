@@ -26,24 +26,24 @@ type NodeRolloutSpec struct {
 	// NodeSelectors uses label selectors to select a group of nodes.
 	// The priority set on the label selector will be passed to the NodeReplacement.
 	// The highest priority of any matching LabelSelector will be used,
-	NodeSelectors []PriorityLabelSelector `json:"nodeSelectors,omitempty"`
+	NodeSelectors []NodeLabelSelector `json:"nodeSelectors,omitempty"`
 
 	// NodeNames allows specific nodes to be requested for replacement by name.
 	// The priority set on the name will be passed to the NodeReplacement.
 	// NodeName priorities always override NodeSelector priorities.
-	NodeNames []PriorityName `json:"nodeNames,omitempty"`
+	NodeNames []NodeName `json:"nodeNames,omitempty"`
 }
 
-// PriorityLabelSelector adds a priority field to the metav1.LabelSelector
-type PriorityLabelSelector struct {
+// NodeLabelSelector adds a ReplacementSpec field to the metav1.LabelSelector
+type NodeLabelSelector struct {
 	metav1.LabelSelector `json:",inline"`
-	Priority             *int `json:"priority,omitempty"`
+	ReplacementSpec      ReplacementSpec `json:"replacement,omitempty"`
 }
 
-// PriorityName pairs a Name with a Priority
-type PriorityName struct {
-	Name     string `json:"name"`
-	Priority *int   `json:"priority"`
+// NodeName pairs a Name with ReplacementSpec
+type NodeName struct {
+	Name            string          `json:"name"`
+	ReplacementSpec ReplacementSpec `json:"replacement,omitempty"`
 }
 
 // NodeRolloutPhase determines the phase in which the NodeRollout currently is

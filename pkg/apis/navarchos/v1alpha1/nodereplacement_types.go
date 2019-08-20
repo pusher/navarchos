@@ -24,9 +24,7 @@ import (
 
 // NodeReplacementSpec defines the desired state of NodeReplacement
 type NodeReplacementSpec struct {
-	// Priority determines the priority of this NodeReplacement.
-	// Higher priorities should be replaced sooner.
-	Priority *int `json:"priority,omitempty"`
+	ReplacementSpec ReplacementSpec `json:"replacement,omitempty"`
 
 	// NodeName should match the Name of the Node this NodeReplacement intends to
 	// replace.
@@ -35,6 +33,14 @@ type NodeReplacementSpec struct {
 	// NodeUID should match the UID of the Node this NodeReplacement intends to
 	// replace.
 	NodeUID types.UID `json:"nodeUID,omitempty"`
+}
+
+// ReplacementSpec contains configuration for the replacement of the Node
+// reference in the NodeReplacement
+type ReplacementSpec struct {
+	// Priority determines the priority of this NodeReplacement.
+	// Higher priorities should be replaced sooner.
+	Priority *int `json:"priority,omitempty"`
 }
 
 // NodeReplacementPhase determines the phase in which the NodeRollout currently is
