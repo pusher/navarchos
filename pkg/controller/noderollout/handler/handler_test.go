@@ -58,7 +58,7 @@ var _ = Describe("Handler suite", func() {
 		m.List(nrList, &client.ListOptions{}, timeout).Should(Succeed())
 
 		Expect(nrList.Items).To(ContainElement(SatisfyAll(
-			utils.WithNodeReplacementSpecField("Priority", Equal(priority)),
+			utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(priority))),
 			utils.WithNodeReplacementSpecField("NodeName", Equal(owner.GetName())),
 			utils.WithNodeReplacementSpecField("NodeUID", Equal(owner.GetUID())),
 			utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
@@ -132,7 +132,7 @@ var _ = Describe("Handler suite", func() {
 				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
 					// This is set by default, so unset before we handle the NodeRollout
-					nr.Spec.NodeNames = []navarchosv1alpha1.PriorityName{}
+					nr.Spec.NodeNames = []navarchosv1alpha1.NodeName{}
 					return nr
 				}, timeout).Should(Succeed())
 				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeNames", BeEmpty()))
@@ -195,7 +195,7 @@ var _ = Describe("Handler suite", func() {
 				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
 					// This is set by default, so unset before we handle the NodeRollout
-					nr.Spec.NodeSelectors = []navarchosv1alpha1.PriorityLabelSelector{}
+					nr.Spec.NodeSelectors = []navarchosv1alpha1.NodeLabelSelector{}
 					return nr
 				}, timeout).Should(Succeed())
 				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
@@ -327,7 +327,7 @@ var _ = Describe("Handler suite", func() {
 				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
 					// This is set by default, so unset before we handle the NodeRollout
-					nr.Spec.NodeSelectors = []navarchosv1alpha1.PriorityLabelSelector{}
+					nr.Spec.NodeSelectors = []navarchosv1alpha1.NodeLabelSelector{}
 					return nr
 				}, timeout).Should(Succeed())
 				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
@@ -351,7 +351,7 @@ var _ = Describe("Handler suite", func() {
 				Expect(items).To(SatisfyAll(
 					ContainElement(SatisfyAll(
 						utils.WithObjectMetaField("Name", Not(Equal(nrMaster1.GetName()))),
-						utils.WithNodeReplacementSpecField("Priority", Equal(20)),
+						utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(20))),
 						utils.WithNodeReplacementSpecField("NodeName", Equal(masterNode1.GetName())),
 						utils.WithNodeReplacementSpecField("NodeUID", Equal(masterNode1.GetUID())),
 						utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
@@ -361,7 +361,7 @@ var _ = Describe("Handler suite", func() {
 					)),
 					ContainElement(SatisfyAll(
 						utils.WithObjectMetaField("Name", Not(Equal(nrWorker1.GetName()))),
-						utils.WithNodeReplacementSpecField("Priority", Equal(10)),
+						utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(10))),
 						utils.WithNodeReplacementSpecField("NodeName", Equal(workerNode1.GetName())),
 						utils.WithNodeReplacementSpecField("NodeUID", Equal(workerNode1.GetUID())),
 						utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
