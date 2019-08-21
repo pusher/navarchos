@@ -248,6 +248,16 @@ func WithNodeReplacementSpecField(field string, matcher gtypes.GomegaMatcher) gt
 	}, matcher)
 }
 
+// WithReplacementSpecField gets the value of the named field from the
+// NodeReplacments Spec
+func WithReplacementSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	return gomega.WithTransform(func(obj navarchosv1alpha1.ReplacementSpec) interface{} {
+		r := reflect.ValueOf(obj)
+		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
 // WithNodeReplacementStatusField gets the value of the named field from the
 // NodeReplacements Status
 func WithNodeReplacementStatusField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {

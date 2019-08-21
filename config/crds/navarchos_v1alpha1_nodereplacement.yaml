@@ -36,11 +36,14 @@ spec:
               description: NodeUID should match the UID of the Node this NodeReplacement
                 intends to replace.
               type: string
-            priority:
-              description: Priority determines the priority of this NodeReplacement.
-                Higher priorities should be replaced sooner.
-              format: int64
-              type: integer
+            replacement:
+              properties:
+                priority:
+                  description: Priority determines the priority of this NodeReplacement.
+                    Higher priorities should be replaced sooner.
+                  format: int64
+                  type: integer
+              type: object
           type: object
         status:
           properties:

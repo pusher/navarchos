@@ -36,12 +36,16 @@ spec:
                 properties:
                   name:
                     type: string
-                  priority:
-                    format: int64
-                    type: integer
+                  replacement:
+                    properties:
+                      priority:
+                        description: Priority determines the priority of this NodeReplacement.
+                          Higher priorities should be replaced sooner.
+                        format: int64
+                        type: integer
+                    type: object
                 required:
                 - name
-                - priority
                 type: object
               type: array
             nodeSelectors:
@@ -64,9 +68,14 @@ spec:
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
-                  priority:
-                    format: int64
-                    type: integer
+                  replacement:
+                    properties:
+                      priority:
+                        description: Priority determines the priority of this NodeReplacement.
+                          Higher priorities should be replaced sooner.
+                        format: int64
+                        type: integer
+                    type: object
                 type: object
               type: array
           type: object

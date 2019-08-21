@@ -143,16 +143,16 @@ var _ = Describe("Handler suite", func() {
 			BeforeEach(func() {
 				highPriorityNR := utils.ExampleNodeReplacement.DeepCopy()
 				highPriorityNR.SetName("high-priority")
-				highPriorityNR.Spec.Priority = intPtr(10)
+				highPriorityNR.Spec.ReplacementSpec.Priority = intPtr(10)
 				highPriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
 				m.Create(highPriorityNR).Should(Succeed())
 				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-					nr.Spec.Priority = intPtr(0)
+					nr.Spec.ReplacementSpec.Priority = intPtr(0)
 					return nr
 				}, timeout).Should(Succeed())
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("Priority", Equal(intPtr(0))))
-				Expect(*highPriorityNR.Spec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.Priority))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(intPtr(0)))))
+				Expect(*highPriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
 			PIt("requeues the NodeReplacement", func() {
@@ -169,16 +169,16 @@ var _ = Describe("Handler suite", func() {
 			BeforeEach(func() {
 				samePriorityNR := utils.ExampleNodeReplacement.DeepCopy()
 				samePriorityNR.SetName("same-priority")
-				samePriorityNR.Spec.Priority = intPtr(10)
+				samePriorityNR.Spec.ReplacementSpec.Priority = intPtr(10)
 				samePriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
 				m.Create(samePriorityNR).Should(Succeed())
 				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-					nr.Spec.Priority = intPtr(10)
+					nr.Spec.ReplacementSpec.Priority = intPtr(10)
 					return nr
 				}, timeout).Should(Succeed())
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("Priority", Equal(intPtr(10))))
-				Expect(*samePriorityNR.Spec.Priority).To(BeNumerically("==", *nodeReplacement.Spec.Priority))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(intPtr(10)))))
+				Expect(*samePriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically("==", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
 			It("does not requeue the NodeReplacement", func() {
