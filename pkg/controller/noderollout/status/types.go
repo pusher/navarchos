@@ -28,8 +28,4 @@ type Result struct {
 	// does not exist on the cluster.
 	// This list will be merged with the existing status list.
 	ReplacementsCompleted []string
-
-	// This should be a list of any currently failing NodeReplacements.
-	// This list will replace the existing status list.
-	ReplacementsFailed []string
 }
