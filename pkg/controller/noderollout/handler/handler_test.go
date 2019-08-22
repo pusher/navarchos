@@ -180,10 +180,6 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
 			})
 
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
-
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCompletedError).To(BeNil())
 				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
@@ -251,10 +247,6 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
 			})
 
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
-
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCompletedError).To(BeNil())
 				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
@@ -307,10 +299,6 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
-			})
-
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
 			})
 
 			It("does not set any error", func() {
@@ -405,10 +393,6 @@ var _ = Describe("Handler suite", func() {
 			It("does not set the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
 			})
-
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
 		})
 
 		Context("if a NodeReplacement has been marked as Completed", func() {
@@ -422,10 +406,6 @@ var _ = Describe("Handler suite", func() {
 
 			PIt("list the completed NodeReplacement in the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(ConsistOf("example-master-1"))
-			})
-
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
 			})
 		})
 
