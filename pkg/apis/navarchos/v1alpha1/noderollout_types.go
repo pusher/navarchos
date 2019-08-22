@@ -54,7 +54,6 @@ const (
 	RolloutPhaseNew        NodeRolloutPhase = "New"
 	RolloutPhaseInProgress NodeRolloutPhase = "InProgress"
 	RolloutPhaseCompleted  NodeRolloutPhase = "Completed"
-	RolloutPhaseFailed     NodeRolloutPhase = "Failed"
 )
 
 // NodeRolloutStatus defines the observed state of NodeRollout
@@ -78,14 +77,6 @@ type NodeRolloutStatus struct {
 	// ReplacementsCompletedCount is the count of ReplacementsCompleted.
 	// This is used for printing in kubectl.
 	ReplacementsCompletedCount int `json:"replacementsCompletedCount,omitempty"`
-
-	// ReplacementsFailed lists the names of all NodeReplacements that have
-	// permanently failed to replace their node.
-	ReplacementsFailed []string `json:"replacementsFailed,omitempty"`
-
-	// ReplacementsFailedCount is the count of ReplacementsFailed.
-	// This is used for printing in kubectl.
-	ReplacementsFailedCount int `json:"replacementsFailedCount,omitempty"`
 
 	// Conditions gives detailed condition information about the NodeRollout
 	Conditions []NodeReplacementCondition `json:"conditions,omitempty"`

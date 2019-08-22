@@ -176,59 +176,6 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 		})
 
-		Context("when no existing ReplacementsFailed is set", func() {
-			var replacementsFailed []string
-
-			BeforeEach(func() {
-				replacementsFailed = []string{"example-master-1", "example-master-2", "example-worker-1", "example-worker-2"}
-				Expect(nodeRollout.Status.ReplacementsFailed).To(BeEmpty())
-				result.ReplacementsFailed = replacementsFailed
-			})
-
-			PIt("sets the ReplacementsFailed field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsFailed", Equal(replacementsFailed)))
-			})
-
-			PIt("sets the ReplacementsFailedCount field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsFailedCount", Equal(len(replacementsFailed))))
-			})
-
-			PIt("does not cause an error", func() {
-				Expect(updateErr).To(BeNil())
-			})
-		})
-
-		Context("when an existing ReplacementsFailed is set", func() {
-			var replacementsFailed []string
-			var existingReplacementsFailed []string
-
-			BeforeEach(func() {
-				// Set up the existing expected state
-				existingReplacementsFailed = []string{"example-master-1", "example-worker-1"}
-				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
-					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
-					nr.Status.ReplacementsFailed = existingReplacementsFailed
-					nr.Status.ReplacementsFailedCount = len(existingReplacementsFailed)
-					return nr
-				}, timeout).Should(Succeed())
-
-				replacementsFailed = []string{"example-master-2", "example-worker-2"}
-				result.ReplacementsFailed = replacementsFailed
-			})
-
-			PIt("updates the ReplacementsFailed field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsFailed", Equal(replacementsFailed)))
-			})
-
-			PIt("updates the ReplacementsFailedCount field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsFailedCount", Equal(len(replacementsFailed))))
-			})
-
-			PIt("does not cause an error", func() {
-				Expect(updateErr).To(BeNil())
-			})
-		})
-
 		Context("when the ReplacementsCompletedError is not set in the Result", func() {
 			PIt("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(

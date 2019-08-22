@@ -51,7 +51,6 @@ const (
 	ReplacementPhaseNew        NodeReplacementPhase = "New"
 	ReplacementPhaseInProgress NodeReplacementPhase = "InProgress"
 	ReplacementPhaseCompleted  NodeReplacementPhase = "Completed"
-	ReplacementPhaseFailed     NodeReplacementPhase = "Failed"
 )
 
 // NodeReplacementStatus defines the observed state of NodeReplacement

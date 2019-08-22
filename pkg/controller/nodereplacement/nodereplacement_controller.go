@@ -95,47 +95,10 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// if the NodeReplacement is Completed or Failed, nothing to do
-	if instance.Status.Phase == navarchosv1alpha1.ReplacementPhaseCompleted || instance.Status.Phase == navarchosv1alpha1.ReplacementPhaseFailed {
-		return reconcile.Result{}, nil
-	}
-
-	// Handle the instance when it is in a New phase, or skip this step
-	if instance.Status.Phase == "" || instance.Status.Phase == navarchosv1alpha1.ReplacementPhaseNew {
-		result := r.handler.HandleNew(instance)
-		err = status.UpdateStatus(r.Client, instance, result)
-		if err != nil {
-			return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
-		}
-		if result.Requeue {
-			return reconcile.Result{Requeue: true}, nil
-		}
-	}
-
-	// if the New phase was successful, we can now perform the InProgress phase
-	// This phase can be repeated to allow retries until it either fails or
-	// completes successfully
-	// When the InProgress phase succeeds it should update the status to mark it
-	// as Completed, breaking this loop.
-	attempts := 0
-	for instance.Status.Phase == navarchosv1alpha1.ReplacementPhaseInProgress && attempts < 5 {
-		result := r.handler.HandleInProgress(instance)
-		err = status.UpdateStatus(r.Client, instance, result)
-		if err != nil {
-			return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
-		}
-		// We have had one more attempt at the InProgress Phase
-		attempts++
-	}
-
-	// If we broke out of the above loop, then we have hit max retries and should
-	// mark this NodeReplacement as a failure
-	if attempts == 5 {
-		failed := navarchosv1alpha1.ReplacementPhaseFailed
-		err = status.UpdateStatus(r.Client, instance, &status.Result{Phase: &failed})
-		if err != nil {
-			return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
-		}
+	result := r.handler.Handle(instance)
+	err = status.UpdateStatus(r.Client, instance, result)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
 	}
 
 	return reconcile.Result{}, nil

@@ -180,10 +180,6 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
 			})
 
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
-
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCompletedError).To(BeNil())
 				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
@@ -251,10 +247,6 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
 			})
 
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
-
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCompletedError).To(BeNil())
 				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
@@ -307,10 +299,6 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
-			})
-
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
 			})
 
 			It("does not set any error", func() {
@@ -405,10 +393,6 @@ var _ = Describe("Handler suite", func() {
 			It("does not set the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(BeEmpty())
 			})
-
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
 		})
 
 		Context("if a NodeReplacement has been marked as Completed", func() {
@@ -423,31 +407,9 @@ var _ = Describe("Handler suite", func() {
 			PIt("list the completed NodeReplacement in the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(ConsistOf("example-master-1"))
 			})
-
-			It("does not set the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(BeEmpty())
-			})
 		})
 
-		Context("if a NodeReplacement has been marked as failed", func() {
-			BeforeEach(func() {
-				m.Update(nrMaster1, func(obj utils.Object) utils.Object {
-					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-					nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseFailed
-					return nr
-				}, timeout).Should(Succeed())
-			})
-
-			It("does not set the Result ReplacementsCompleted field", func() {
-				Expect(result.ReplacementsCompleted).To(BeEmpty())
-			})
-
-			PIt("list the Failed NodeReplacement in the Result ReplacementsFailed field", func() {
-				Expect(result.ReplacementsFailed).To(ConsistOf("example-master-1"))
-			})
-		})
-
-		Context("once all NodeReplacements are marked as Completed or Failed", func() {
+		Context("once all NodeReplacements are marked as Completed", func() {
 			BeforeEach(func() {
 				for _, nr := range []*navarchosv1alpha1.NodeReplacement{nrMaster1, nrMaster2, nrWorker1, nrWorker2} {
 					m.Update(nr, func(obj utils.Object) utils.Object {
@@ -458,49 +420,17 @@ var _ = Describe("Handler suite", func() {
 				}
 			})
 
-			Context("if all NodeReplacements have been marked as Completed", func() {
-				PIt("lists the completed NodeReplacements in the Result ReplacementsCompleted field", func() {
-					Expect(result.ReplacementsCompleted).To(ConsistOf(
-						"example-master-1",
-						"example-master-2",
-						"example-worker-1",
-						"example-worker-2",
-					))
-				})
-
-				It("does not set the Result ReplacementsFailed field", func() {
-					Expect(result.ReplacementsFailed).To(BeEmpty())
-				})
-
-				PIt("sets the Result Phase field to Completed", func() {
-					Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseCompleted))
-				})
+			PIt("lists the completed NodeReplacements in the Result ReplacementsCompleted field", func() {
+				Expect(result.ReplacementsCompleted).To(ConsistOf(
+					"example-master-1",
+					"example-master-2",
+					"example-worker-1",
+					"example-worker-2",
+				))
 			})
 
-			Context("if at least one NodeReplacements have been marked as Failed", func() {
-				BeforeEach(func() {
-					m.Update(nodeReplacementFor(masterNode1), func(obj utils.Object) utils.Object {
-						nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-						nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseFailed
-						return nr
-					}, timeout).Should(Succeed())
-				})
-
-				PIt("lists the Completed NodeReplacements in the Result ReplacementsCompleted field", func() {
-					Expect(result.ReplacementsCompleted).To(ConsistOf(
-						"example-master-2",
-						"example-worker-1",
-						"example-worker-2",
-					))
-				})
-
-				PIt("lists the Failed NodeReplacements in the Result ReplacementsFailed field", func() {
-					Expect(result.ReplacementsFailed).To(ConsistOf("example-master-1"))
-				})
-
-				PIt("sets the Result Phase field to Failed", func() {
-					Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseFailed))
-				})
+			PIt("sets the Result Phase field to Completed", func() {
+				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseCompleted))
 			})
 		})
 	})
@@ -545,48 +475,5 @@ var _ = Describe("Handler suite", func() {
 			})
 		})
 
-	})
-
-	Context("when the Handler function is called on a Failed NodeRollout", func() {
-		BeforeEach(func() {
-			m.Create(nodeReplacementFor(masterNode1)).Should(Succeed())
-			m.Create(nodeReplacementFor(masterNode2)).Should(Succeed())
-			m.Create(nodeReplacementFor(workerNode1)).Should(Succeed())
-			m.Create(nodeReplacementFor(workerNode2)).Should(Succeed())
-
-			// Set the NodeRollout as we expect it to be at this point
-			m.Update(nodeRollout, func(obj utils.Object) utils.Object {
-				nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
-				nr.Status.Phase = navarchosv1alpha1.RolloutPhaseFailed
-				nr.Status.ReplacementsCreated = []string{"example-master-1", "example-master-2", "example-worker-1", "example-worker-2"}
-				nr.Status.ReplacementsCreatedCount = len(nr.Status.ReplacementsCreated)
-				nr.Status.ReplacementsCompleted = []string{"example-master-2", "example-worker-1", "example-worker-2"}
-				nr.Status.ReplacementsCompletedCount = len(nr.Status.ReplacementsCompleted)
-				nr.Status.ReplacementsFailed = []string{"example-master-1"}
-				nr.Status.ReplacementsFailedCount = len(nr.Status.ReplacementsFailed)
-				return nr
-			}, timeout).Should(Succeed())
-			Expect(nodeRollout.Status.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseFailed))
-		})
-
-		JustBeforeEach(func() {
-			result = h.Handle(nodeRollout)
-		})
-
-		Context("and the NodeRollout is younger than the maximum age", func() {
-			It("does nothing", func() {
-				Expect(result).To(Equal(&status.Result{}))
-			})
-		})
-
-		Context("and the NodeRollout is older than the maximum age", func() {
-			BeforeEach(func() {
-				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(h.maxAge - time.Hour))
-			})
-
-			PIt("deletes the NodeRollout", func() {
-				m.Get(nodeRollout, timeout).ShouldNot(Succeed())
-			})
-		})
 	})
 })

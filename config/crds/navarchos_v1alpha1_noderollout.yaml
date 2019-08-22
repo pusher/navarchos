@@ -137,17 +137,6 @@ spec:
                 This is used for printing in kubectl.
               format: int64
               type: integer
-            replacementsFailed:
-              description: ReplacementsFailed lists the names of all NodeReplacements
-                that have permanently failed to replace their node.
-              items:
-                type: string
-              type: array
-            replacementsFailedCount:
-              description: ReplacementsFailedCount is the count of ReplacementsFailed.
-                This is used for printing in kubectl.
-              format: int64
-              type: integer
           required:
           - phase
           type: object

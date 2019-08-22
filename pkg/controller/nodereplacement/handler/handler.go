@@ -10,7 +10,7 @@ import (
 
 // Options are used to configure the NodeReplacementHandler
 type Options struct {
-	// EvictionGracePeriod determins how long the controller should attempt to
+	// EvictionGracePeriod determines how long the controller should attempt to
 	// evict a pod before marking it a failed eviction
 	EvictionGracePeriod *time.Duration
 }
@@ -38,14 +38,8 @@ func NewNodeReplacementHandler(c client.Client, opts *Options) *NodeReplacementH
 	}
 }
 
-// HandleNew performs the business logic of a New NodeReplacement and returns
+// Handle performs the business logic of a NodeReplacement and returns
 // information in a Result
-func (h *NodeReplacementHandler) HandleNew(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
-	return &status.Result{}
-}
-
-// HandleInProgress performs the business logic of an InProgress NodeReplacemen
-// and returns information in a Result
-func (h *NodeReplacementHandler) HandleInProgress(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
+func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
 	return &status.Result{}
 }

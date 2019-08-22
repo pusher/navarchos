@@ -319,11 +319,6 @@ func (in *NodeRolloutStatus) DeepCopyInto(out *NodeRolloutStatus) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.ReplacementsFailed != nil {
-		in, out := &in.ReplacementsFailed, &out.ReplacementsFailed
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]NodeReplacementCondition, len(*in))
