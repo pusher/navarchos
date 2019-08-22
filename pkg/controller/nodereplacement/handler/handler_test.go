@@ -136,7 +136,7 @@ var _ = Describe("Handler suite", func() {
 
 	Context("when the Handler is called on a New NodeReplacement", func() {
 		JustBeforeEach(func() {
-			result = h.HandleNew(nodeReplacement)
+			result = h.Handle(nodeReplacement)
 		})
 
 		Context("if a another NodeReplacement is higher priority", func() {
@@ -280,7 +280,7 @@ var _ = Describe("Handler suite", func() {
 
 		// Since HandleInProgress could take some time, we set a timeout
 		JustBeforeEach(func(done Done) {
-			result = h.HandleInProgress(nodeReplacement)
+			result = h.Handle(nodeReplacement)
 			close(done)
 		}, 2*timeout.Seconds())
 
