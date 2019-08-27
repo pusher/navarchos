@@ -56,11 +56,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.Phase = &phase
 			})
 
-			PIt("updates the phase in the status", func() {
+			It("updates the phase in the status", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("Phase", Equal(phase)))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -74,15 +74,15 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.NodePods = nodePods
 			})
 
-			PIt("sets the NodePods field", func() {
+			It("sets the NodePods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("NodePods", Equal(nodePods)))
 			})
 
-			PIt("sets the NodePodsCount field", func() {
+			It("sets the NodePodsCount field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("NodePodsCount", Equal(len(nodePods))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -113,7 +113,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithNodeReplacementStatusField("NodePodsCount", Equal(len(existingNodePods))))
 			})
 
-			PIt("returns an error", func() {
+			It("returns an error", func() {
 				Expect(updateErr.Error()).To(Equal("cannot update NodePods, field is immutable once set"))
 			})
 		})
@@ -127,15 +127,15 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.EvictedPods = evictedPods
 			})
 
-			PIt("sets the EvictedPods field", func() {
+			It("sets the EvictedPods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("EvictedPods", Equal(evictedPods)))
 			})
 
-			PIt("sets the EvictedPodsCount field", func() {
+			It("sets the EvictedPodsCount field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("EvictedPodsCount", Equal(len(evictedPods))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -161,17 +161,17 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				expectedEvictedPods = append(evictedPods, existingEvictedPods...)
 			})
 
-			PIt("joins the new and existing EvictedPods field", func() {
+			It("joins the new and existing EvictedPods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(
 					utils.WithNodeReplacementStatusField("EvictedPods", ConsistOf(expectedEvictedPods)),
 				)
 			})
 
-			PIt("updates the EvictedPodsCount field", func() {
+			It("updates the EvictedPodsCount field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("EvictedPodsCount", Equal(len(expectedEvictedPods))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -190,15 +190,15 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.IgnoredPods = ignoredPods
 			})
 
-			PIt("sets the IgnoredPods field", func() {
+			It("sets the IgnoredPods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("IgnoredPods", Equal(ignoredPods)))
 			})
 
-			PIt("sets the IgnoredPodsCount field", func() {
+			It("sets the IgnoredPodsCount field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("IgnoredPodsCount", Equal(len(ignoredPods))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -237,7 +237,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithNodeReplacementStatusField("IgnoredPodsCount", Equal(len(existingIgnoredPods))))
 			})
 
-			PIt("returns an error", func() {
+			It("returns an error", func() {
 				Expect(updateErr.Error()).To(Equal("cannot update IgnoredPods, field is immutable once set"))
 			})
 		})
@@ -256,15 +256,15 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.FailedPods = failedPods
 			})
 
-			PIt("sets the FailedPods field", func() {
+			It("sets the FailedPods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPods", Equal(failedPods)))
 			})
 
-			PIt("sets the FailedPodsCount field", func() {
+			It("sets the FailedPodsCount field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPodsCount", Equal(len(failedPods))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -293,21 +293,21 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.FailedPods = failedPods
 			})
 
-			PIt("updates the FailedPods field", func() {
+			It("updates the FailedPods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPods", Equal(failedPods)))
 			})
 
-			PIt("updates the FailedPodsCount field", func() {
+			It("updates the FailedPodsCount field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPodsCount", Equal(len(failedPods))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
 
 		Context("when the NodeCordonError is not set in the Result", func() {
-			PIt("updates the status condition", func() {
+			It("updates the status condition", func() {
 				m.Eventually(nodeReplacement, timeout).Should(
 					utils.WithNodeReplacementStatusField("Conditions",
 						ContainElement(SatisfyAll(
@@ -320,7 +320,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				)
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -331,7 +331,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				result.NodeCordonReason = "CompletedErrorReason"
 			})
 
-			PIt("updates the status condition", func() {
+			It("updates the status condition", func() {
 				m.Eventually(nodeReplacement, timeout).Should(
 					utils.WithNodeReplacementStatusField("Conditions",
 						ContainElement(SatisfyAll(
@@ -344,7 +344,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 				)
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -355,7 +355,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 					result.NodeCordonError = errors.New("error")
 				})
 
-				PIt("causes an error", func() {
+				It("causes an error", func() {
 					Expect(updateErr).ToNot(BeNil())
 				})
 			})
@@ -365,7 +365,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 					result.NodeCordonReason = "test"
 				})
 
-				PIt("causes an error", func() {
+				It("causes an error", func() {
 					Expect(updateErr).ToNot(BeNil())
 				})
 			})
@@ -376,13 +376,13 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 					result.NodeCordonReason = "test"
 				})
 
-				PIt("does not cause an error", func() {
+				It("does not cause an error", func() {
 					Expect(updateErr).To(BeNil())
 				})
 			})
 
 			Context("if neither are set", func() {
-				PIt("does not cause an error", func() {
+				It("does not cause an error", func() {
 					Expect(updateErr).To(BeNil())
 				})
 			})
