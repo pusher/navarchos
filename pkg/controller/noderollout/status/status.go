@@ -6,14 +6,14 @@ import (
 	"reflect"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // UpdateStatus merges the status in the existing instance with the information
-// provided in the handler. Result and then updates the instance if there is any
+// provided in the Result and then updates the instance if there is any
 // difference between the new and updated status
 func UpdateStatus(c client.Client, instance *navarchosv1alpha1.NodeRollout, result *Result) error {
 	status := instance.Status
@@ -82,13 +82,13 @@ func setReplacementsCompleted(status *navarchosv1alpha1.NodeRolloutStatus, resul
 }
 
 // newNodeRolloutCondition creates a new condition NodeRolloutCondition
-func newNodeRolloutCondition(condType navarchosv1alpha1.NodeRolloutConditionType, status v1.ConditionStatus, reason string, message string) *navarchosv1alpha1.NodeRolloutCondition {
+func newNodeRolloutCondition(condType navarchosv1alpha1.NodeRolloutConditionType, status corev1.ConditionStatus, reason navarchosv1alpha1.NodeRolloutConditionReason, message string) *navarchosv1alpha1.NodeRolloutCondition {
 	return &navarchosv1alpha1.NodeRolloutCondition{
 		Type:               condType,
 		Status:             status,
 		LastUpdateTime:     metav1.Now(),
 		LastTransitionTime: metav1.Now(),
-		Reason:             string(reason),
+		Reason:             reason,
 		Message:            message,
 	}
 }
@@ -131,7 +131,7 @@ func filterOutCondition(conditions []navarchosv1alpha1.NodeRolloutCondition, con
 	return newConditions
 }
 
-func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarchosv1alpha1.NodeRolloutConditionType, condErr error, reason string) error {
+func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarchosv1alpha1.NodeRolloutConditionType, condErr error, reason navarchosv1alpha1.NodeRolloutConditionReason) error {
 	if (condErr == nil) != (reason == "") {
 		return fmt.Errorf("Either ReplacementsCompletedError or ReplacementsCompletedReason is not set")
 	}
@@ -139,7 +139,7 @@ func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarcho
 		// Error for condition , set condition appropriately
 		cond := newNodeRolloutCondition(
 			condType,
-			v1.ConditionFalse,
+			corev1.ConditionFalse,
 			reason,
 			condErr.Error(),
 		)
@@ -150,7 +150,7 @@ func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarcho
 	// No error for condition, set condition appropriately
 	cond := newNodeRolloutCondition(
 		condType,
-		v1.ConditionTrue,
+		corev1.ConditionTrue,
 		reason,
 		"",
 	)

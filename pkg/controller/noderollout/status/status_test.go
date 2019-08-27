@@ -178,7 +178,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 		})
 
 		Context("when the ReplacementsCompletedError is not set in the Result", func() {
-			It("updates the status condition", func() { // see faros
+			It("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(
 					utils.WithNodeRolloutStatusField("Conditions",
 						ContainElement(SatisfyAll(

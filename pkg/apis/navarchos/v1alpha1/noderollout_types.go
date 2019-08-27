@@ -92,7 +92,7 @@ const (
 )
 
 // NodeRolloutConditionReason represents a valid condition reason for a NodeRollout
-// type NodeRolloutConditionReason string
+type NodeRolloutConditionReason string
 
 // NodeRolloutCondition is a status condition for a NodeRollout
 type NodeRolloutCondition struct {
@@ -109,7 +109,7 @@ type NodeRolloutCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
 	// Reason for the current status of this condition
-	Reason string `json:"reason,omitempty"`
+	Reason NodeRolloutConditionReason `json:"reason,omitempty"`
 
 	// Message associated with this condition
 	Message string `json:"message,omitempty"`
