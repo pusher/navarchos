@@ -155,10 +155,10 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 					return nr
 				}, timeout).Should(Succeed())
 
-				evictedPods = []string{"example-pod-2", "example-pod-4"}
+				// Introduce some duplication, this implicitly tests for de-duplication.
+				evictedPods = []string{"example-pod-2", "example-pod-4", "example-pod-1"}
 				result.EvictedPods = evictedPods
-
-				expectedEvictedPods = append(evictedPods, existingEvictedPods...)
+				expectedEvictedPods = []string{"example-pod-2", "example-pod-4", "example-pod-1", "example-pod-3"}
 			})
 
 			It("joins the new and existing EvictedPods field", func() {

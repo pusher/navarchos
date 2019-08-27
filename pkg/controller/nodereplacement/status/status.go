@@ -77,7 +77,7 @@ func setNodePods(status *navarchosv1alpha1.NodeReplacementStatus, result *Result
 // set it is added, otherwise the new pods are appended to the previous ones
 func setEvictedPods(status *navarchosv1alpha1.NodeReplacementStatus, result *Result) {
 	if status.EvictedPods != nil && result.EvictedPods != nil {
-		status.EvictedPods = append(status.EvictedPods, result.EvictedPods...)
+		status.EvictedPods = appendIfMissingStr(status.EvictedPods, result.EvictedPods...)
 		status.EvictedPodsCount = len(status.EvictedPods)
 	}
 
@@ -188,4 +188,24 @@ func setCondition(status *navarchosv1alpha1.NodeReplacementStatus, condType nava
 	setNodeReplacementCondition(status, *cond)
 
 	return nil
+}
+
+// appendIfMissingStr will append two []string(s) dropping duplicate elements
+func appendIfMissingStr(slice []string, str ...string) []string {
+	merged := slice
+	for _, ele := range str {
+		merged = appendIfMissingElement(merged, ele)
+	}
+	return merged
+}
+
+// appendIfMissingElement will append a string to a []string only if it is
+// unique
+func appendIfMissingElement(slice []string, i string) []string {
+	for _, ele := range slice {
+		if ele == i {
+			return slice
+		}
+	}
+	return append(slice, i)
 }
