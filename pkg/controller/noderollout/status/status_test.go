@@ -156,10 +156,11 @@ var _ = Describe("NodeRollout Status Suite", func() {
 					return nr
 				}, timeout).Should(Succeed())
 
-				replacementsCompleted = []string{"example-master-2", "example-worker-2"}
+				// Introduce some duplication, this implicitly tests for de-duplication.
+				replacementsCompleted = []string{"example-master-2", "example-worker-2", "example-master-1"}
 				result.ReplacementsCompleted = replacementsCompleted
+				expectedReplacementsCompleted = []string{"example-master-2", "example-worker-2", "example-master-1", "example-worker-1"}
 
-				expectedReplacementsCompleted = append(replacementsCompleted, existingReplacementsCompleted...)
 			})
 
 			It("joins the new and existing ReplacementsCompleted field", func() {

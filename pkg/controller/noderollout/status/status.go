@@ -70,7 +70,7 @@ func setReplacementsCreated(status *navarchosv1alpha1.NodeRolloutStatus, result 
 // set before it is added. If it has been set before the two are appended
 func setReplacementsCompleted(status *navarchosv1alpha1.NodeRolloutStatus, result *Result) {
 	if status.ReplacementsCompleted != nil && result.ReplacementsCompleted != nil {
-		status.ReplacementsCompleted = append(status.ReplacementsCompleted, result.ReplacementsCompleted...)
+		status.ReplacementsCompleted = appendIfMissingStr(status.ReplacementsCompleted, result.ReplacementsCompleted...)
 		status.ReplacementsCompletedCount = len(status.ReplacementsCompleted)
 	}
 
@@ -157,4 +157,24 @@ func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarcho
 	setNodeRolloutCondition(status, *cond)
 
 	return nil
+}
+
+// appendIfMissingStr will append two []string(s) dropping duplicate elements
+func appendIfMissingStr(slice []string, str ...string) []string {
+	merged := slice
+	for _, ele := range str {
+		merged = appendIfMissingElement(merged, ele)
+	}
+	return merged
+}
+
+// appendIfMissingElement will append a string to a []string only if it is
+// unique
+func appendIfMissingElement(slice []string, i string) []string {
+	for _, ele := range slice {
+		if ele == i {
+			return slice
+		}
+	}
+	return append(slice, i)
 }
