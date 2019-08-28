@@ -56,11 +56,11 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				result.Phase = &phase
 			})
 
-			PIt("updates the phase in the status", func() {
+			It("updates the phase in the status", func() {
 				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("Phase", Equal(phase)))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -74,20 +74,20 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				result.ReplacementsCreated = replacementsCreated
 			})
 
-			PIt("sets the ReplacementsCreated field", func() {
+			It("sets the ReplacementsCreated field", func() {
 				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreated", Equal(replacementsCreated)))
 			})
 
-			PIt("sets the ReplacementsCreatedCount field", func() {
+			It("sets the ReplacementsCreatedCount field", func() {
 				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreatedCount", Equal(len(replacementsCreated))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
 
-		Context("when an existing ReplacementsCreated is set", func() {
+		Context("when an existing ReplacementsCreated is set and ReplacementsCreated is set in  the Result", func() {
 			var replacementsCreated []string
 			var existingReplacementsCreated []string
 
@@ -113,7 +113,8 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreatedCount", Equal(len(existingReplacementsCreated))))
 			})
 
-			PIt("returns an error", func() {
+			It("returns an error", func() {
+				Expect(updateErr).ToNot(BeNil())
 				Expect(updateErr.Error()).To(Equal("cannot update ReplacementsCreated, field is immutable once set"))
 			})
 		})
@@ -127,15 +128,15 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				result.ReplacementsCompleted = replacementsCompleted
 			})
 
-			PIt("sets the ReplacementsCompleted field", func() {
+			It("sets the ReplacementsCompleted field", func() {
 				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCompleted", Equal(replacementsCompleted)))
 			})
 
-			PIt("sets the ReplacementsCompletedCount field", func() {
+			It("sets the ReplacementsCompletedCount field", func() {
 				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCompletedCount", Equal(len(replacementsCompleted))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -155,29 +156,30 @@ var _ = Describe("NodeRollout Status Suite", func() {
 					return nr
 				}, timeout).Should(Succeed())
 
-				replacementsCompleted = []string{"example-master-2", "example-worker-2"}
+				// Introduce some duplication, this implicitly tests for de-duplication.
+				replacementsCompleted = []string{"example-master-2", "example-worker-2", "example-master-1"}
 				result.ReplacementsCompleted = replacementsCompleted
+				expectedReplacementsCompleted = []string{"example-master-2", "example-worker-2", "example-master-1", "example-worker-1"}
 
-				expectedReplacementsCompleted = append(replacementsCompleted, existingReplacementsCompleted...)
 			})
 
-			PIt("joins the new and existing ReplacementsCompleted field", func() {
+			It("joins the new and existing ReplacementsCompleted field", func() {
 				m.Eventually(nodeRollout, timeout).Should(
 					utils.WithNodeRolloutStatusField("ReplacementsCompleted", ConsistOf(expectedReplacementsCompleted)),
 				)
 			})
 
-			PIt("updates the ReplacementsCompletedCount field", func() {
+			It("updates the ReplacementsCompletedCount field", func() {
 				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCompletedCount", Equal(len(expectedReplacementsCompleted))))
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
 
 		Context("when the ReplacementsCompletedError is not set in the Result", func() {
-			PIt("updates the status condition", func() {
+			It("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(
 					utils.WithNodeRolloutStatusField("Conditions",
 						ContainElement(SatisfyAll(
@@ -190,7 +192,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				)
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -201,7 +203,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				result.ReplacementsCompletedReason = "CompletedErrorReason"
 			})
 
-			PIt("updates the status condition", func() {
+			It("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(
 					utils.WithNodeRolloutStatusField("Conditions",
 						ContainElement(SatisfyAll(
@@ -214,7 +216,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				)
 			})
 
-			PIt("does not cause an error", func() {
+			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
 			})
 		})
@@ -225,7 +227,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 					result.ReplacementsCompletedError = errors.New("error")
 				})
 
-				PIt("causes an error", func() {
+				It("causes an error", func() {
 					Expect(updateErr).ToNot(BeNil())
 				})
 			})
@@ -235,7 +237,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 					result.ReplacementsCompletedReason = "test"
 				})
 
-				PIt("causes an error", func() {
+				It("causes an error", func() {
 					Expect(updateErr).ToNot(BeNil())
 				})
 			})
@@ -246,13 +248,13 @@ var _ = Describe("NodeRollout Status Suite", func() {
 					result.ReplacementsCompletedReason = "test"
 				})
 
-				PIt("does not cause an error", func() {
+				It("does not cause an error", func() {
 					Expect(updateErr).To(BeNil())
 				})
 			})
 
 			Context("if neither are set", func() {
-				PIt("does not cause an error", func() {
+				It("does not cause an error", func() {
 					Expect(updateErr).To(BeNil())
 				})
 			})
