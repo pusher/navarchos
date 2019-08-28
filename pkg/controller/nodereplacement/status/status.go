@@ -110,13 +110,13 @@ func setFailedPods(status *navarchosv1alpha1.NodeReplacementStatus, result *Resu
 }
 
 // newNodeReplacementCondition creates a new condition NodeReplacementCondition
-func newNodeReplacementCondition(condType navarchosv1alpha1.NodeReplacementConditionType, status corev1.ConditionStatus, reason string, message string) *navarchosv1alpha1.NodeReplacementCondition {
+func newNodeReplacementCondition(condType navarchosv1alpha1.NodeReplacementConditionType, status corev1.ConditionStatus, reason navarchosv1alpha1.NodeReplacementConditionReason, message string) *navarchosv1alpha1.NodeReplacementCondition {
 	return &navarchosv1alpha1.NodeReplacementCondition{
 		Type:               condType,
 		Status:             status,
 		LastUpdateTime:     metav1.Now(),
 		LastTransitionTime: metav1.Now(),
-		Reason:             string(reason),
+		Reason:             reason,
 		Message:            message,
 	}
 }
@@ -162,7 +162,7 @@ func filterOutCondition(conditions []navarchosv1alpha1.NodeReplacementCondition,
 	return newConditions
 }
 
-func setCondition(status *navarchosv1alpha1.NodeReplacementStatus, condType navarchosv1alpha1.NodeReplacementConditionType, condErr error, reason string) error {
+func setCondition(status *navarchosv1alpha1.NodeReplacementStatus, condType navarchosv1alpha1.NodeReplacementConditionType, condErr error, reason navarchosv1alpha1.NodeReplacementConditionReason) error {
 	if (condErr == nil) != (reason == "") {
 		return fmt.Errorf("either NodeCordonError or NodeCordonReason is not set")
 	}

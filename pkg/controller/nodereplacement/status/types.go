@@ -25,7 +25,7 @@ type Result struct {
 
 	// This should contain a short description of the type of error for cordoning
 	// the node
-	NodeCordonReason string
+	NodeCordonReason navarchosv1alpha1.NodeReplacementConditionReason
 
 	// This should list all Pods on the Node at the time the controller cordons
 	// the node.

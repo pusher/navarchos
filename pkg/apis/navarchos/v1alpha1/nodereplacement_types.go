@@ -106,6 +106,9 @@ const (
 	NodeCordonedType NodeReplacementConditionType = "NodeCordoned"
 )
 
+// NodeReplacementConditionReason represents a valid condition reason for a NodeReplacement
+type NodeReplacementConditionReason string
+
 // NodeReplacementCondition is a status condition for a NodeReplacement
 type NodeReplacementCondition struct {
 	// Type of this condition
@@ -121,7 +124,7 @@ type NodeReplacementCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 
 	// Reason for the current status of this condition
-	Reason string `json:"reason,omitempty"`
+	Reason NodeReplacementConditionReason `json:"reason,omitempty"`
 
 	// Message associated with this condition
 	Message string `json:"message,omitempty"`
