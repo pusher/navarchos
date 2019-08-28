@@ -116,7 +116,7 @@ var _ = Describe("Handler suite", func() {
 		mgrStopped.Wait()
 
 		pods := &corev1.PodList{}
-		m.List(pods, &client.ListOptions{}).Should(Succeed())
+		m.List(pods).Should(Succeed())
 		for _, pod := range pods.Items {
 			m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
 		}

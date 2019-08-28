@@ -28,7 +28,6 @@ import (
 	"github.com/pusher/navarchos/test/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -55,7 +54,7 @@ var _ = Describe("Handler suite", func() {
 	// name, an owner reference pointing to the given node, and the given priority
 	var checkForNodeReplacement = func(name string, owner *corev1.Node, priority int) {
 		nrList := &navarchosv1alpha1.NodeReplacementList{}
-		m.List(nrList, &client.ListOptions{}, timeout).Should(Succeed())
+		m.List(nrList, timeout).Should(Succeed())
 
 		Expect(nrList.Items).To(ContainElement(SatisfyAll(
 			utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(priority))),
@@ -329,7 +328,7 @@ var _ = Describe("Handler suite", func() {
 
 			PIt("should create new NodeReplacements for the nodes", func() {
 				nrList := &navarchosv1alpha1.NodeReplacementList{}
-				m.List(nrList, &client.ListOptions{}, timeout).Should(Succeed())
+				m.List(nrList, timeout).Should(Succeed())
 
 				items := []*navarchosv1alpha1.NodeReplacement{}
 				for _, nr := range nrList.Items {
