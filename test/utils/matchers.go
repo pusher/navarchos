@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/onsi/gomega"
 	gtypes "github.com/onsi/gomega/types"
@@ -241,11 +242,7 @@ func WithNodeRolloutConditionField(field string, matcher gtypes.GomegaMatcher) g
 // WithNodeReplacementSpecField gets the value of the named field from the
 // NodeReplacments Spec
 func WithNodeReplacementSpecField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
-	return gomega.WithTransform(func(obj *navarchosv1alpha1.NodeReplacement) interface{} {
-		r := reflect.ValueOf(obj.Spec)
-		f := reflect.Indirect(r).FieldByName(field)
-		return f.Interface()
-	}, matcher)
+	return WithField(fmt.Sprintf("Spec.%s", field), matcher)
 }
 
 // WithReplacementSpecField gets the value of the named field from the
@@ -283,6 +280,21 @@ func WithTaintField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMat
 	return gomega.WithTransform(func(obj *corev1.Taint) interface{} {
 		r := reflect.ValueOf(obj)
 		f := reflect.Indirect(r).FieldByName(field)
+		return f.Interface()
+	}, matcher)
+}
+
+// WithField gets the value of the named field from the object
+func WithField(field string, matcher gtypes.GomegaMatcher) gtypes.GomegaMatcher {
+	// Addressing Field by <struct>.<field> can be recursed
+	fields := strings.SplitN(field, ".", 2)
+	if len(fields) == 2 {
+		matcher = WithField(fields[1], matcher)
+	}
+
+	return gomega.WithTransform(func(obj interface{}) interface{} {
+		r := reflect.ValueOf(obj)
+		f := reflect.Indirect(r).FieldByName(fields[0])
 		return f.Interface()
 	}, matcher)
 }
