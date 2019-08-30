@@ -35,6 +35,8 @@ type NodeRolloutHandler struct {
 	maxAge time.Duration
 }
 
+// nodeReplacementSpec is a container to allow easier construction of
+// NodeReplacements
 type nodeReplacementSpec struct {
 	node            corev1.Node
 	replacementSpec navarchosv1alpha1.NodeReplacementSpec
@@ -102,8 +104,8 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	return result
 }
 
-// filterNodeSelectors filters the list of all nodes. If a nodes labels match it
-// adds the node to the nodeMap
+// filterNodeSelectors filters the list of all nodes.  If a nodes labels match
+// it adds the node to the nodeMap
 func filterNodeSelectors(nodes *corev1.NodeList, selectors []navarchosv1alpha1.NodeLabelSelector, nodeMap map[string]nodeReplacementSpec) (map[string]nodeReplacementSpec, error) {
 	for _, node := range nodes.Items {
 		labels := metalabels.Set(node.GetLabels())
@@ -148,14 +150,8 @@ func filterNodeNames(nodes *corev1.NodeList, nodeNames []navarchosv1alpha1.NodeN
 	return nodeMap
 }
 
-func createNodeReplacementFromSpec(spec navarchosv1alpha1.NodeReplacementSpec, rolloutOwner *navarchosv1alpha1.NodeRollout, nodeOwner *corev1.Node) navarchosv1alpha1.NodeReplacement {
-	// gvk := schema.GroupVersionKind{
-	// 	Group:   "navarchos.pusher.com",
-	// 	Version: "v1alpha1",
-	// 	Kind:    "NodeReplacement",
-	// }
-
-	nodeReplacement := navarchosv1alpha1.NodeReplacement{
+// createNodeReplacementFromSpec takes a NodeReplacementSpec, NodeRollout and
+// node and returns a NodeReplacement with the correct owners
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: navarchosv1alpha1.SchemeGroupVersion.String(),
 			Kind:       "NodeReplacement",
