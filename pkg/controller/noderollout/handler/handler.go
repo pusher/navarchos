@@ -64,7 +64,6 @@ func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) *st
 	default:
 		return h.handleNew(instance)
 	}
-
 }
 
 // handleNew handles a NodeRollout in the 'New' phase
@@ -77,8 +76,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 		return result
 	}
 
-	var nodeReplacementMap map[string]nodeReplacementSpec
-	nodeReplacementMap = make(map[string]nodeReplacementSpec)
+	nodeReplacementMap := make(map[string]nodeReplacementSpec)
 
 	nodeReplacementMap, err = filterNodeSelectors(nodes, instance.Spec.NodeSelectors, nodeReplacementMap)
 	if err != nil {
@@ -91,15 +89,15 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	// create the NodeReplacements
 	for _, spec := range nodeReplacementMap {
 		nodeReplacement := createNodeReplacementFromSpec(spec.replacementSpec, instance, &spec.node)
-		err := h.client.Create(context.Background(), &nodeReplacement)
+		err := h.client.Create(context.Background(), nodeReplacement)
 		if err != nil {
 			result.ReplacementsCompletedError = err
 			return result
 		}
 		result.ReplacementsCreated = append(result.ReplacementsCreated, spec.replacementSpec.NodeName)
 	}
-	newPhase := navarchosv1alpha1.RolloutPhaseInProgress
-	result.Phase = &newPhase
+	inProgress := navarchosv1alpha1.RolloutPhaseInProgress
+	result.Phase = &inProgress
 
 	return result
 }
@@ -107,11 +105,11 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 // filterNodeSelectors filters the list of all nodes.  If a nodes labels match
 // it adds the node to the nodeMap
 func filterNodeSelectors(nodes *corev1.NodeList, selectors []navarchosv1alpha1.NodeLabelSelector, nodeMap map[string]nodeReplacementSpec) (map[string]nodeReplacementSpec, error) {
-		for _, nls := range selectors {
-			selector, err := metav1.LabelSelectorAsSelector(&nls.LabelSelector)
-			if err != nil {
-				return nil, err
-			}
+	for _, nls := range selectors {
+		selector, err := metav1.LabelSelectorAsSelector(&nls.LabelSelector)
+		if err != nil {
+			return nil, err
+		}
 		// check which nodes match the LabelSelector
 		for _, node := range nodes.Items {
 			labels := metalabels.Set(node.GetLabels())
@@ -128,20 +126,20 @@ func filterNodeSelectors(nodes *corev1.NodeList, selectors []navarchosv1alpha1.N
 // nodeReplacementSpec
 func newNodeReplacementSpec(node corev1.Node, replacementSpec navarchosv1alpha1.ReplacementSpec) nodeReplacementSpec {
 	return nodeReplacementSpec{
-					node: node,
-					replacementSpec: navarchosv1alpha1.NodeReplacementSpec{
+		node: node,
+		replacementSpec: navarchosv1alpha1.NodeReplacementSpec{
 			ReplacementSpec: replacementSpec,
-						NodeName:        node.GetName(),
-						NodeUID:         node.GetUID(),
-					},
-				}
-			}
+			NodeName:        node.GetName(),
+			NodeUID:         node.GetUID(),
+		},
+	}
+}
 
 // filterNodeNames filters the list of all nodes. If a nodes name matches one
 // provided it adds the node to the nodeMap
 func filterNodeNames(nodes *corev1.NodeList, nodeNames []navarchosv1alpha1.NodeName, nodeMap map[string]nodeReplacementSpec) map[string]nodeReplacementSpec {
 	for _, selectedName := range nodeNames {
-	for _, node := range nodes.Items {
+		for _, node := range nodes.Items {
 			if node.GetName() == selectedName.Name {
 				nodeMap[node.GetName()] = newNodeReplacementSpec(node, selectedName.ReplacementSpec)
 				break
@@ -169,7 +167,6 @@ func createNodeReplacementFromSpec(spec navarchosv1alpha1.NodeReplacementSpec, r
 		Spec:   spec,
 		Status: navarchosv1alpha1.NodeReplacementStatus{},
 	}
-	return nodeReplacement
 }
 
 // newOwnerRef creates an OwnerReference pointing to the given owner.
