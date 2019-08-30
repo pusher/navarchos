@@ -182,8 +182,8 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("does not set any error", func() {
-				Expect(result.ReplacementsCompletedError).To(BeNil())
-				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedError).To(BeNil())
+				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
 		})
 
@@ -250,8 +250,8 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("does not set any error", func() {
-				Expect(result.ReplacementsCompletedError).To(BeNil())
-				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedError).To(BeNil())
+				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
 		})
 
@@ -305,8 +305,8 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("does not set any error", func() {
-				Expect(result.ReplacementsCompletedError).To(BeNil())
-				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedError).To(BeNil())
+				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
 		})
 

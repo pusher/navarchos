@@ -66,13 +66,15 @@ func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) *st
 	}
 }
 
-// handleNew handles a NodeRollout in the 'New' phase
+// handleNew handles a NodeRollout in the 'New' phase. It creates
+// NodeReplacements from the provided NodeRollout instance and updates the phase
+// to in progress if it does not fail
 func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) *status.Result {
 	result := &status.Result{}
 	nodes := &corev1.NodeList{}
 	err := h.client.List(context.Background(), nodes)
 	if err != nil {
-		result.ReplacementsCompletedError = err
+		result.ReplacementsCreatedError = fmt.Errorf("failed to list nodes: %v", err)
 		return result
 	}
 
@@ -80,7 +82,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 
 	nodeReplacementMap, err = filterNodeSelectors(nodes, instance.Spec.NodeSelectors, nodeReplacementMap)
 	if err != nil {
-		result.ReplacementsCompletedError = err
+		result.ReplacementsCreatedError = fmt.Errorf("failed to filter nodes: %v", err)
 		return result
 	}
 
@@ -91,7 +93,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 		nodeReplacement := createNodeReplacementFromSpec(spec.replacementSpec, instance, &spec.node)
 		err := h.client.Create(context.Background(), nodeReplacement)
 		if err != nil {
-			result.ReplacementsCompletedError = err
+			result.ReplacementsCreatedError = fmt.Errorf("failed to create NodeReplacement: %v", err)
 			return result
 		}
 		result.ReplacementsCreated = append(result.ReplacementsCreated, spec.replacementSpec.NodeName)
