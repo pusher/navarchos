@@ -107,22 +107,16 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 // filterNodeSelectors filters the list of all nodes.  If a nodes labels match
 // it adds the node to the nodeMap
 func filterNodeSelectors(nodes *corev1.NodeList, selectors []navarchosv1alpha1.NodeLabelSelector, nodeMap map[string]nodeReplacementSpec) (map[string]nodeReplacementSpec, error) {
-	for _, node := range nodes.Items {
-		labels := metalabels.Set(node.GetLabels())
 		for _, nls := range selectors {
 			selector, err := metav1.LabelSelectorAsSelector(&nls.LabelSelector)
 			if err != nil {
 				return nil, err
 			}
+		// check which nodes match the LabelSelector
+		for _, node := range nodes.Items {
+			labels := metalabels.Set(node.GetLabels())
 			if selector.Matches(labels) {
-				nodeMap[node.GetName()] = nodeReplacementSpec{
-					node: node,
-					replacementSpec: navarchosv1alpha1.NodeReplacementSpec{
-						ReplacementSpec: nls.ReplacementSpec,
-						NodeName:        node.GetName(),
-						NodeUID:         node.GetUID(),
-					},
-				}
+				nodeMap[node.GetName()] = newNodeReplacementSpec(node, nls.ReplacementSpec)
 			}
 
 		}
@@ -130,20 +124,27 @@ func filterNodeSelectors(nodes *corev1.NodeList, selectors []navarchosv1alpha1.N
 	return nodeMap, nil
 }
 
-// filterNodeNames filters the list of all nodes. If a nodes name matches one
-// provided it adds the node to the nodeMap
-func filterNodeNames(nodes *corev1.NodeList, nodeNames []navarchosv1alpha1.NodeName, nodeMap map[string]nodeReplacementSpec) map[string]nodeReplacementSpec {
-	for _, node := range nodes.Items {
-		for _, selectedName := range nodeNames {
-			if node.GetName() == selectedName.Name {
-				nodeMap[node.GetName()] = nodeReplacementSpec{
+// newNodeReplacementSpec takes a node and a ReplacementSpec and returns a
+// nodeReplacementSpec
+func newNodeReplacementSpec(node corev1.Node, replacementSpec navarchosv1alpha1.ReplacementSpec) nodeReplacementSpec {
+	return nodeReplacementSpec{
 					node: node,
 					replacementSpec: navarchosv1alpha1.NodeReplacementSpec{
-						ReplacementSpec: selectedName.ReplacementSpec,
+			ReplacementSpec: replacementSpec,
 						NodeName:        node.GetName(),
 						NodeUID:         node.GetUID(),
 					},
 				}
+			}
+
+// filterNodeNames filters the list of all nodes. If a nodes name matches one
+// provided it adds the node to the nodeMap
+func filterNodeNames(nodes *corev1.NodeList, nodeNames []navarchosv1alpha1.NodeName, nodeMap map[string]nodeReplacementSpec) map[string]nodeReplacementSpec {
+	for _, selectedName := range nodeNames {
+	for _, node := range nodes.Items {
+			if node.GetName() == selectedName.Name {
+				nodeMap[node.GetName()] = newNodeReplacementSpec(node, selectedName.ReplacementSpec)
+				break
 			}
 		}
 	}
@@ -152,6 +153,8 @@ func filterNodeNames(nodes *corev1.NodeList, nodeNames []navarchosv1alpha1.NodeN
 
 // createNodeReplacementFromSpec takes a NodeReplacementSpec, NodeRollout and
 // node and returns a NodeReplacement with the correct owners
+func createNodeReplacementFromSpec(spec navarchosv1alpha1.NodeReplacementSpec, rolloutOwner *navarchosv1alpha1.NodeRollout, nodeOwner *corev1.Node) *navarchosv1alpha1.NodeReplacement {
+	return &navarchosv1alpha1.NodeReplacement{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: navarchosv1alpha1.SchemeGroupVersion.String(),
 			Kind:       "NodeReplacement",
