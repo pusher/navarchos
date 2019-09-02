@@ -13,7 +13,7 @@ type Result struct {
 	// This should contain any errors related to the creation of the NodeReplacements.
 	ReplacementsCreatedError error
 
-	// This is the short reason description for the errors related to creating of
+	// This is the short reason description for the errors related to creation of
 	// NodeReplacements.
 	ReplacementsCreatedReason navarchosv1alpha1.NodeRolloutConditionReason
 

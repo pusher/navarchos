@@ -3,6 +3,8 @@ package handler
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
@@ -42,6 +44,13 @@ type nodeReplacementSpec struct {
 	replacementSpec navarchosv1alpha1.NodeReplacementSpec
 }
 
+// replacementCreationResult is a container struct used for returning errors and
+// names when creating NodeReplacements
+type replacementCreationResult struct {
+	err                error
+	replacementCreated string
+}
+
 // NewNodeRolloutHandler creates a new NodeRolloutHandler
 func NewNodeRolloutHandler(c client.Client, opts *Options) *NodeRolloutHandler {
 	opts.Complete()
@@ -79,25 +88,36 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	}
 
 	nodeReplacementMap := make(map[string]nodeReplacementSpec)
-
 	nodeReplacementMap, err = filterNodeSelectors(nodes, instance.Spec.NodeSelectors, nodeReplacementMap)
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to filter nodes: %v", err)
 		return result
 	}
-
 	nodeReplacementMap = filterNodeNames(nodes, instance.Spec.NodeNames, nodeReplacementMap)
 
-	// create the NodeReplacements
-	for _, spec := range nodeReplacementMap {
-		nodeReplacement := createNodeReplacementFromSpec(spec.replacementSpec, instance, &spec.node)
-		err := h.client.Create(context.Background(), nodeReplacement)
-		if err != nil {
-			result.ReplacementsCreatedError = fmt.Errorf("failed to create NodeReplacement: %v", err)
-			return result
+	outputChannel := createNodeReplacements(nodeReplacementMap, instance, h.client)
+
+	// retrieve any errors.
+	errMap := make(map[error]int)
+	for output := range outputChannel {
+		if output.err != nil {
+			errMap[output.err]++
+		} else {
+			result.ReplacementsCreated = append(result.ReplacementsCreated, output.replacementCreated)
 		}
-		result.ReplacementsCreated = append(result.ReplacementsCreated, spec.replacementSpec.NodeName)
 	}
+
+	// if there are any errors concatenate and return them, don't update the
+	// phase
+	if len(errMap) > 0 {
+		errSlice := []string{}
+		for errName, count := range errMap {
+			errSlice = append(errSlice, fmt.Sprintf("Error: \"%s\" has occurred \"%d\" time(s)", errName.Error(), count))
+		}
+		result.ReplacementsCreatedError = fmt.Errorf(strings.Join(errSlice, ",\n"))
+		return result
+	}
+
 	inProgress := navarchosv1alpha1.RolloutPhaseInProgress
 	result.Phase = &inProgress
 
@@ -154,7 +174,7 @@ func filterNodeNames(nodes *corev1.NodeList, nodeNames []navarchosv1alpha1.NodeN
 // createNodeReplacementFromSpec takes a NodeReplacementSpec, NodeRollout and
 // node and returns a NodeReplacement with the correct owners
 func createNodeReplacementFromSpec(spec navarchosv1alpha1.NodeReplacementSpec, rolloutOwner *navarchosv1alpha1.NodeRollout, nodeOwner *corev1.Node) *navarchosv1alpha1.NodeReplacement {
-	return &navarchosv1alpha1.NodeReplacement{
+	nodeReplacement := &navarchosv1alpha1.NodeReplacement{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: navarchosv1alpha1.SchemeGroupVersion.String(),
 			Kind:       "NodeReplacement",
@@ -169,6 +189,7 @@ func createNodeReplacementFromSpec(spec navarchosv1alpha1.NodeReplacementSpec, r
 		Spec:   spec,
 		Status: navarchosv1alpha1.NodeReplacementStatus{},
 	}
+	return nodeReplacement.DeepCopy()
 }
 
 // newOwnerRef creates an OwnerReference pointing to the given owner.
@@ -182,6 +203,31 @@ func newOwnerRef(owner metav1.Object, gvk schema.GroupVersionKind, isController 
 		Controller:         &isController,
 	}
 }
+
+// createNodeRollouts uses a new goroutine to create each NodeReplacment in
+// parallel
+func createNodeReplacements(nodeReplacementMap map[string]nodeReplacementSpec, instance *navarchosv1alpha1.NodeRollout, k8sClient client.Client) <-chan replacementCreationResult {
+	outputChannel := make(chan replacementCreationResult, len(nodeReplacementMap))
+	var wg sync.WaitGroup
+	wg.Add(len(nodeReplacementMap))
+	for _, spec := range nodeReplacementMap {
+		go func(spec nodeReplacementSpec, instance *navarchosv1alpha1.NodeRollout, client client.Client) {
+			defer wg.Done()
+			nodeReplacement := createNodeReplacementFromSpec(spec.replacementSpec, instance, &spec.node)
+
+			err := client.Create(context.Background(), nodeReplacement)
+			if err != nil {
+				outputChannel <- replacementCreationResult{err: fmt.Errorf("failed to create NodeReplacement: %v", err), replacementCreated: ""}
+			}
+			outputChannel <- replacementCreationResult{err: nil, replacementCreated: spec.replacementSpec.NodeName}
+		}(spec, instance, k8sClient)
+	}
+
+	wg.Wait()
+	close(outputChannel)
+	return outputChannel
+}
+
 func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRollout) *status.Result {
 	return &status.Result{}
 }
