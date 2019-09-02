@@ -178,7 +178,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 		})
 
-		Context("when the ReplacementsCompletedError is not set in the Result", func() {
+		Context("when the ReplacementsCreatedError is not set in the Result", func() {
 			It("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(
 					utils.WithNodeRolloutStatusField("Conditions",
@@ -197,10 +197,10 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 		})
 
-		Context("when the ReplacementsCompletedError is set in the Result", func() {
+		Context("when the ReplacementsCreatedError is set in the Result", func() {
 			BeforeEach(func() {
-				result.ReplacementsCompletedError = errors.New("error creating replacements")
-				result.ReplacementsCompletedReason = "CompletedErrorReason"
+				result.ReplacementsCreatedError = errors.New("error creating replacements")
+				result.ReplacementsCreatedReason = "CreatedErrorReason"
 			})
 
 			It("updates the status condition", func() {
@@ -209,8 +209,8 @@ var _ = Describe("NodeRollout Status Suite", func() {
 						ContainElement(SatisfyAll(
 							utils.WithNodeRolloutConditionField("Type", Equal(navarchosv1alpha1.ReplacementsCreatedType)),
 							utils.WithNodeRolloutConditionField("Status", Equal(corev1.ConditionFalse)),
-							utils.WithNodeRolloutConditionField("Reason", Equal(result.ReplacementsCompletedReason)),
-							utils.WithNodeRolloutConditionField("Message", Equal(result.ReplacementsCompletedError.Error())),
+							utils.WithNodeRolloutConditionField("Reason", Equal(result.ReplacementsCreatedReason)),
+							utils.WithNodeRolloutConditionField("Message", Equal(result.ReplacementsCreatedError.Error())),
 						)),
 					),
 				)
@@ -221,10 +221,10 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 		})
 
-		Context("ReplacementsCompletedError and ReplacementsCompletedReason must be set together", func() {
+		Context("ReplacementsCreatedError and ReplacementsCreatedReason must be set together", func() {
 			Context("if only ReplacementsCompleteError is set", func() {
 				BeforeEach(func() {
-					result.ReplacementsCompletedError = errors.New("error")
+					result.ReplacementsCreatedError = errors.New("error")
 				})
 
 				It("causes an error", func() {
@@ -232,9 +232,9 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				})
 			})
 
-			Context("if only ReplacementsCompleteReason is set", func() {
+			Context("if only ReplacementsCreatedReason is set", func() {
 				BeforeEach(func() {
-					result.ReplacementsCompletedReason = "test"
+					result.ReplacementsCreatedReason = "test"
 				})
 
 				It("causes an error", func() {
@@ -244,8 +244,8 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			Context("if both are set", func() {
 				BeforeEach(func() {
-					result.ReplacementsCompletedError = errors.New("error")
-					result.ReplacementsCompletedReason = "test"
+					result.ReplacementsCreatedError = errors.New("error")
+					result.ReplacementsCreatedReason = "test"
 				})
 
 				It("does not cause an error", func() {

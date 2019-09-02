@@ -11,11 +11,11 @@ type Result struct {
 	Phase *navarchosv1alpha1.NodeRolloutPhase
 
 	// This should contain any errors related to the creation of the NodeReplacements.
-	ReplacementsCompletedError error
+	ReplacementsCreatedError error
 
-	// This is the short reason description for the errors related to creationg of
+	// This is the short reason description for the errors related to creation of
 	// NodeReplacements.
-	ReplacementsCompletedReason navarchosv1alpha1.NodeRolloutConditionReason
+	ReplacementsCreatedReason navarchosv1alpha1.NodeRolloutConditionReason
 
 	// This should list all NodeReplacements created.
 	// This will be a list of the node names that are going to be replaced.

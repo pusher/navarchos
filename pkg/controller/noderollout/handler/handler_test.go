@@ -57,10 +57,10 @@ var _ = Describe("Handler suite", func() {
 		m.List(nrList, timeout).Should(Succeed())
 
 		Expect(nrList.Items).To(ContainElement(SatisfyAll(
-			utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(priority))),
-			utils.WithNodeReplacementSpecField("NodeName", Equal(owner.GetName())),
-			utils.WithNodeReplacementSpecField("NodeUID", Equal(owner.GetUID())),
-			utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
+			utils.WithField("Spec.ReplacementSpec.Priority", Equal(&priority)),
+			utils.WithField("Spec.NodeName", Equal(owner.GetName())),
+			utils.WithField("Spec.NodeUID", Equal(owner.GetUID())),
+			utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
 				ContainElement(Equal(utils.GetOwnerReferenceForNode(owner))),
 				ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
 			)),
@@ -91,6 +91,7 @@ var _ = Describe("Handler suite", func() {
 
 		nodeRollout = utils.ExampleNodeRollout.DeepCopy()
 		m.Create(nodeRollout).Should(Succeed())
+		m.Get(nodeRollout, timeout).Should(Succeed())
 
 		// Create some nodes to act as owners for the NodeReplacements created
 		masterNode1 = utils.ExampleNodeMaster1.DeepCopy()
@@ -137,19 +138,19 @@ var _ = Describe("Handler suite", func() {
 				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeNames", BeEmpty()))
 			})
 
-			PIt("creates a NodeReplacement for example-master-1", func() {
+			It("creates a NodeReplacement for example-master-1", func() {
 				checkForNodeReplacement("example-master-1", masterNode1, 15)
 			})
 
-			PIt("creates a NodeReplacement for example-master-2", func() {
+			It("creates a NodeReplacement for example-master-2", func() {
 				checkForNodeReplacement("example-master-2", masterNode2, 15)
 			})
 
-			PIt("creates a NodeReplacement for example-worker-1", func() {
+			It("creates a NodeReplacement for example-worker-1", func() {
 				checkForNodeReplacement("example-worker-1", workerNode1, 5)
 			})
 
-			PIt("creates a NodeReplacement for example-worker-2", func() {
+			It("creates a NodeReplacement for example-worker-2", func() {
 				checkForNodeReplacement("example-worker-2", workerNode2, 5)
 			})
 
@@ -162,7 +163,7 @@ var _ = Describe("Handler suite", func() {
 				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
 			})
 
-			PIt("populates the Result ReplacementsCreated field", func() {
+			It("populates the Result ReplacementsCreated field", func() {
 				Expect(result.ReplacementsCreated).To(ConsistOf(
 					"example-master-1",
 					"example-master-2",
@@ -171,8 +172,9 @@ var _ = Describe("Handler suite", func() {
 				))
 			})
 
-			PIt("sets the Result Phase to InProgress", func() {
-				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseInProgress))
+			It("sets the Result Phase to InProgress", func() {
+				inProgress := navarchosv1alpha1.RolloutPhaseInProgress
+				Expect(result.Phase).To(Equal(&inProgress))
 			})
 
 			It("does not set the Result ReplacementsCompleted field", func() {
@@ -180,8 +182,8 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("does not set any error", func() {
-				Expect(result.ReplacementsCompletedError).To(BeNil())
-				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedError).To(BeNil())
+				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
 		})
 
@@ -196,7 +198,7 @@ var _ = Describe("Handler suite", func() {
 				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
 			})
 
-			PIt("creates a NodeReplacement for example-master-1", func() {
+			It("creates a NodeReplacement for example-master-1", func() {
 				checkForNodeReplacement("example-master-1", masterNode1, 20)
 			})
 
@@ -209,7 +211,7 @@ var _ = Describe("Handler suite", func() {
 				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
 			})
 
-			PIt("creates a NodeReplacement for example-worker-1", func() {
+			It("creates a NodeReplacement for example-worker-1", func() {
 				checkForNodeReplacement("example-worker-1", workerNode1, 10)
 			})
 
@@ -231,15 +233,16 @@ var _ = Describe("Handler suite", func() {
 				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
 			})
 
-			PIt("populates the Result ReplacementsCreated field", func() {
+			It("populates the Result ReplacementsCreated field", func() {
 				Expect(result.ReplacementsCreated).To(ConsistOf(
 					"example-master-1",
 					"example-worker-1",
 				))
 			})
 
-			PIt("sets the Result Phase to InProgress", func() {
-				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseInProgress))
+			It("sets the Result Phase to InProgress", func() {
+				inProgress := navarchosv1alpha1.RolloutPhaseInProgress
+				Expect(result.Phase).To(Equal(&inProgress))
 			})
 
 			It("does not set the Result ReplacementsCompleted field", func() {
@@ -247,8 +250,8 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("does not set any error", func() {
-				Expect(result.ReplacementsCompletedError).To(BeNil())
-				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedError).To(BeNil())
+				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
 		})
 
@@ -258,19 +261,19 @@ var _ = Describe("Handler suite", func() {
 				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", Not(BeEmpty())))
 			})
 
-			PIt("creates a NodeReplacement for example-master-1", func() {
+			It("creates a NodeReplacement for example-master-1", func() {
 				checkForNodeReplacement("example-master-1", masterNode1, 20)
 			})
 
-			PIt("creates a NodeReplacement for example-master-2", func() {
+			It("creates a NodeReplacement for example-master-2", func() {
 				checkForNodeReplacement("example-master-2", masterNode2, 15)
 			})
 
-			PIt("creates a NodeReplacement for example-worker-1", func() {
+			It("creates a NodeReplacement for example-worker-1", func() {
 				checkForNodeReplacement("example-worker-1", workerNode1, 10)
 			})
 
-			PIt("creates a NodeReplacement for example-worker-2", func() {
+			It("creates a NodeReplacement for example-worker-2", func() {
 				checkForNodeReplacement("example-worker-2", workerNode2, 5)
 			})
 
@@ -283,7 +286,7 @@ var _ = Describe("Handler suite", func() {
 				m.Get(nr, consistentlyTimeout).ShouldNot(Succeed())
 			})
 
-			PIt("populates the Result ReplacementsCreated field", func() {
+			It("populates the Result ReplacementsCreated field", func() {
 				Expect(result.ReplacementsCreated).To(ConsistOf(
 					"example-master-1",
 					"example-master-2",
@@ -292,8 +295,9 @@ var _ = Describe("Handler suite", func() {
 				))
 			})
 
-			PIt("sets the Result Phase to InProgress", func() {
-				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseInProgress))
+			It("sets the Result Phase to InProgress", func() {
+				inProgress := navarchosv1alpha1.RolloutPhaseInProgress
+				Expect(result.Phase).To(Equal(&inProgress))
 			})
 
 			It("does not set the Result ReplacementsCompleted field", func() {
@@ -301,8 +305,8 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("does not set any error", func() {
-				Expect(result.ReplacementsCompletedError).To(BeNil())
-				Expect(result.ReplacementsCompletedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedError).To(BeNil())
+				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
 		})
 
@@ -326,7 +330,7 @@ var _ = Describe("Handler suite", func() {
 				m.Create(nrWorker1).Should(Succeed())
 			})
 
-			PIt("should create new NodeReplacements for the nodes", func() {
+			It("should create new NodeReplacements for the nodes", func() {
 				nrList := &navarchosv1alpha1.NodeReplacementList{}
 				m.List(nrList, timeout).Should(Succeed())
 
@@ -337,21 +341,21 @@ var _ = Describe("Handler suite", func() {
 
 				Expect(items).To(SatisfyAll(
 					ContainElement(SatisfyAll(
-						utils.WithObjectMetaField("Name", Not(Equal(nrMaster1.GetName()))),
-						utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(20))),
-						utils.WithNodeReplacementSpecField("NodeName", Equal(masterNode1.GetName())),
-						utils.WithNodeReplacementSpecField("NodeUID", Equal(masterNode1.GetUID())),
-						utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
+						utils.WithField("ObjectMeta.Name", Not(Equal(nrMaster1.GetName()))),
+						utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(20))),
+						utils.WithField("Spec.NodeName", Equal(masterNode1.GetName())),
+						utils.WithField("Spec.NodeUID", Equal(masterNode1.GetUID())),
+						utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
 							ContainElement(Equal(utils.GetOwnerReferenceForNode(masterNode1))),
 							ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
 						)),
 					)),
 					ContainElement(SatisfyAll(
-						utils.WithObjectMetaField("Name", Not(Equal(nrWorker1.GetName()))),
-						utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(10))),
-						utils.WithNodeReplacementSpecField("NodeName", Equal(workerNode1.GetName())),
-						utils.WithNodeReplacementSpecField("NodeUID", Equal(workerNode1.GetUID())),
-						utils.WithObjectMetaField("OwnerReferences", SatisfyAll(
+						utils.WithField("ObjectMeta.Name", Not(Equal(nrWorker1.GetName()))),
+						utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(10))),
+						utils.WithField("Spec.NodeName", Equal(workerNode1.GetName())),
+						utils.WithField("Spec.NodeUID", Equal(workerNode1.GetUID())),
+						utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
 							ContainElement(Equal(utils.GetOwnerReferenceForNode(workerNode1))),
 							ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
 						)),
@@ -476,3 +480,7 @@ var _ = Describe("Handler suite", func() {
 
 	})
 })
+
+func intPtr(i int) *int {
+	return &i
+}
