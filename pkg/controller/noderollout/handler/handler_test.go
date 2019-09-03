@@ -50,13 +50,17 @@ var _ = Describe("Handler suite", func() {
 	const timeout = time.Second * 5
 	const consistentlyTimeout = time.Second
 
+	var nodeReplacmentTypeMeta = metav1.TypeMeta{
+		Kind:       "NodeReplacement",
+		APIVersion: "navarchos.pusher.com/v1alpha1",
+	}
+
 	// checkForNodeReplacement checks if a NodeReplacement exists with the given
 	// name, an owner reference pointing to the given node, and the given priority
 	var checkForNodeReplacement = func(name string, owner *corev1.Node, priority int) {
 		nrList := &navarchosv1alpha1.NodeReplacementList{}
-		m.List(nrList, timeout).Should(Succeed())
 
-		Expect(nrList.Items).To(ContainElement(SatisfyAll(
+		m.Eventually(nrList, timeout).Should(utils.WithField("Items", ContainElement(SatisfyAll(
 			utils.WithField("Spec.ReplacementSpec.Priority", Equal(&priority)),
 			utils.WithField("Spec.NodeName", Equal(owner.GetName())),
 			utils.WithField("Spec.NodeUID", Equal(owner.GetUID())),
@@ -64,17 +68,25 @@ var _ = Describe("Handler suite", func() {
 				ContainElement(Equal(utils.GetOwnerReferenceForNode(owner))),
 				ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
 			)),
-		)))
+		))))
 	}
 
 	var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
 		return &navarchosv1alpha1.NodeReplacement{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "navarchos.pusher.com/v1alpha1",
+				Kind:       "NodeReplacement",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: fmt.Sprintf("%s-", node.Name),
 				OwnerReferences: []metav1.OwnerReference{
 					utils.GetOwnerReferenceForNode(node),
 					utils.GetOwnerReferenceForNodeRollout(nodeRollout),
 				},
+			},
+			Spec: navarchosv1alpha1.NodeReplacementSpec{
+				NodeName: node.GetName(),
+				NodeUID:  node.GetUID(),
 			},
 		}
 	}
@@ -328,39 +340,67 @@ var _ = Describe("Handler suite", func() {
 				m.Create(nrMaster1).Should(Succeed())
 				nrWorker1 = nodeReplacementFor(workerNode1)
 				m.Create(nrWorker1).Should(Succeed())
+
+				// m.Create() removes the TypeMeta, for some reason
+				nrMaster1.TypeMeta = nodeReplacmentTypeMeta
+				nrWorker1.TypeMeta = nodeReplacmentTypeMeta
+
 			})
 
-			It("should create new NodeReplacements for the nodes", func() {
-				nrList := &navarchosv1alpha1.NodeReplacementList{}
-				m.List(nrList, timeout).Should(Succeed())
+			Context("which are owned by a different NodeRollout", func() {
+				BeforeEach(func() {
+					newNr := utils.ExampleNodeRollout.DeepCopy()
+					newNr.SetName("a-different-one")
 
-				items := []*navarchosv1alpha1.NodeReplacement{}
-				for _, nr := range nrList.Items {
-					items = append(items, nr.DeepCopy())
-				}
+					m.Create(newNr).Should(Succeed())
 
-				Expect(items).To(SatisfyAll(
-					ContainElement(SatisfyAll(
-						utils.WithField("ObjectMeta.Name", Not(Equal(nrMaster1.GetName()))),
-						utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(20))),
-						utils.WithField("Spec.NodeName", Equal(masterNode1.GetName())),
-						utils.WithField("Spec.NodeUID", Equal(masterNode1.GetUID())),
-						utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
-							ContainElement(Equal(utils.GetOwnerReferenceForNode(masterNode1))),
-							ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+					masterNode1OwnerRefs := []metav1.OwnerReference{utils.GetOwnerReferenceForNode(masterNode1), utils.GetOwnerReferenceForNodeRollout(newNr)}
+					m.Update(nrMaster1, func(obj utils.Object) utils.Object {
+						obj.SetOwnerReferences(masterNode1OwnerRefs)
+						return obj
+					}, timeout).Should(Succeed())
+
+					workerNode1OwnerRefs := []metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode1), utils.GetOwnerReferenceForNodeRollout(newNr)}
+					m.Update(nrWorker1, func(obj utils.Object) utils.Object {
+						obj.SetOwnerReferences(workerNode1OwnerRefs)
+						return obj
+					}, timeout).Should(Succeed())
+
+				})
+
+				It("should create new NodeReplacements for the nodes", func() {
+					nrList := &navarchosv1alpha1.NodeReplacementList{}
+
+					m.Eventually(nrList, timeout).Should(utils.WithField("Items", SatisfyAll(
+						ContainElement(SatisfyAll(
+							utils.WithField("ObjectMeta.Name", Not(Equal(nrMaster1.GetName()))),
+							utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(20))),
+							utils.WithField("Spec.NodeName", Equal(masterNode1.GetName())),
+							utils.WithField("Spec.NodeUID", Equal(masterNode1.GetUID())),
+							utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
+								ContainElement(Equal(utils.GetOwnerReferenceForNode(masterNode1))),
+								ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+							)),
 						)),
-					)),
-					ContainElement(SatisfyAll(
-						utils.WithField("ObjectMeta.Name", Not(Equal(nrWorker1.GetName()))),
-						utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(10))),
-						utils.WithField("Spec.NodeName", Equal(workerNode1.GetName())),
-						utils.WithField("Spec.NodeUID", Equal(workerNode1.GetUID())),
-						utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
-							ContainElement(Equal(utils.GetOwnerReferenceForNode(workerNode1))),
-							ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+						ContainElement(SatisfyAll(
+							utils.WithField("ObjectMeta.Name", Not(Equal(nrWorker1.GetName()))),
+							utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(10))),
+							utils.WithField("Spec.NodeName", Equal(workerNode1.GetName())),
+							utils.WithField("Spec.NodeUID", Equal(workerNode1.GetUID())),
+							utils.WithField("ObjectMeta.OwnerReferences", SatisfyAll(
+								ContainElement(Equal(utils.GetOwnerReferenceForNode(workerNode1))),
+								ContainElement(Equal(utils.GetOwnerReferenceForNodeRollout(nodeRollout))),
+							)),
 						)),
-					)),
-				))
+					)))
+				})
+			})
+
+			Context("which are owned by the same NodeRollout", func() {
+				It("does not create new NodeReplacements", func() {
+					nrList := &navarchosv1alpha1.NodeReplacementList{}
+					m.Consistently(nrList, consistentlyTimeout).Should(utils.WithField("Items", ConsistOf(*nrMaster1, *nrWorker1)))
+				})
 			})
 		})
 	})
