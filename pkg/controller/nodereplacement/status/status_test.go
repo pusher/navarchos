@@ -307,21 +307,43 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 		})
 
 		Context("when the NodeCordonError is not set in the Result", func() {
-			It("updates the status condition", func() {
-				m.Eventually(nodeReplacement, timeout).Should(
-					utils.WithNodeReplacementStatusField("Conditions",
-						ContainElement(SatisfyAll(
-							utils.WithNodeReplacementConditionField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
-							utils.WithNodeReplacementConditionField("Status", Equal(corev1.ConditionTrue)),
-							utils.WithNodeReplacementConditionField("Reason", BeEmpty()),
-							utils.WithNodeReplacementConditionField("Message", BeEmpty()),
-						)),
-					),
-				)
+			Context("and NodeCordonReason is set", func() {
+				BeforeEach(func() {
+					result.NodeCordonReason = "NodeCordoned"
+				})
+
+				It("adds the status condition with Status True", func() {
+					m.Eventually(nodeReplacement, timeout).Should(
+						utils.WithNodeReplacementStatusField("Conditions",
+							ContainElement(SatisfyAll(
+								utils.WithNodeReplacementConditionField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
+								utils.WithNodeReplacementConditionField("Status", Equal(corev1.ConditionTrue)),
+								utils.WithNodeReplacementConditionField("Reason", Equal(navarchosv1alpha1.NodeReplacementConditionReason("NodeCordoned"))),
+								utils.WithNodeReplacementConditionField("Message", BeEmpty()),
+							)),
+						),
+					)
+				})
+
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
+				})
 			})
 
-			It("does not cause an error", func() {
-				Expect(updateErr).To(BeNil())
+			Context("and NodeCordonReason is not set", func() {
+				It("should not add a status condition", func() {
+					m.Eventually(nodeReplacement, timeout).Should(
+						utils.WithNodeReplacementStatusField("Conditions",
+							Not(ContainElement(
+								utils.WithNodeReplacementConditionField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
+							)),
+						),
+					)
+				})
+
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
+				})
 			})
 		})
 
@@ -349,7 +371,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 		})
 
-		Context("NodeCordonError and NodeCordonReason must be set together", func() {
+		Context("NodeCordonError implies NodeCordonReason must be set", func() {
 			Context("if only NodeCordonError is set", func() {
 				BeforeEach(func() {
 					result.NodeCordonError = errors.New("error")
@@ -365,8 +387,8 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 					result.NodeCordonReason = "test"
 				})
 
-				It("causes an error", func() {
-					Expect(updateErr).ToNot(BeNil())
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
 				})
 			})
 
