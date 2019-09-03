@@ -163,8 +163,8 @@ func filterOutCondition(conditions []navarchosv1alpha1.NodeReplacementCondition,
 }
 
 func setCondition(status *navarchosv1alpha1.NodeReplacementStatus, condType navarchosv1alpha1.NodeReplacementConditionType, condErr error, reason navarchosv1alpha1.NodeReplacementConditionReason) error {
-	if (condErr == nil) != (reason == "") {
-		return fmt.Errorf("either NodeCordonError or NodeCordonReason is not set")
+	if condErr != nil && reason == "" {
+		return fmt.Errorf("if NodeCordonError is set, NodeCordonReason must also be set")
 	}
 	if condErr != nil {
 		// Error for condition , set condition appropriately
@@ -178,14 +178,16 @@ func setCondition(status *navarchosv1alpha1.NodeReplacementStatus, condType nava
 		return nil
 	}
 
-	// No error for condition, set condition appropriately
-	cond := newNodeReplacementCondition(
-		condType,
-		corev1.ConditionTrue,
-		reason,
-		"",
-	)
-	setNodeReplacementCondition(status, *cond)
+	if reason != "" {
+		// No error for condition, set condition appropriately
+		cond := newNodeReplacementCondition(
+			condType,
+			corev1.ConditionTrue,
+			reason,
+			"",
+		)
+		setNodeReplacementCondition(status, *cond)
+	}
 
 	return nil
 }
