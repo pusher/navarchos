@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -95,7 +96,11 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	}
 	nodeReplacementMap = filterNodeNames(nodes, instance.Spec.NodeNames, nodeReplacementMap)
 
-	outputChannel := createNodeReplacements(nodeReplacementMap, instance, h.client)
+	outputChannel, err := h.createNodeReplacements(nodeReplacementMap, instance)
+	if err != nil {
+		result.ReplacementsCreatedError = fmt.Errorf("failed to create node replacements: %v", err)
+		return result
+	}
 
 	// retrieve any errors.
 	errMap := make(map[error]int)
@@ -192,7 +197,7 @@ func createNodeReplacementFromSpec(spec navarchosv1alpha1.NodeReplacementSpec, r
 	return nodeReplacement.DeepCopy()
 }
 
-// newOwnerRef creates an OwnerReference pointing to the given owner.
+// newOwnerRef creates an OwnerReference pointing to the given owner
 func newOwnerRef(owner metav1.Object, gvk schema.GroupVersionKind, isController bool, blockOwnerDeletion bool) metav1.OwnerReference {
 	return metav1.OwnerReference{
 		APIVersion:         gvk.GroupVersion().String(),
@@ -205,32 +210,80 @@ func newOwnerRef(owner metav1.Object, gvk schema.GroupVersionKind, isController 
 }
 
 // createNodeRollouts uses a new goroutine to create each NodeReplacment in
-// parallel
-func createNodeReplacements(nodeReplacementMap map[string]nodeReplacementSpec, instance *navarchosv1alpha1.NodeRollout, k8sClient client.Client) <-chan replacementCreationResult {
+// parallel. If a node already has a replacement that is owned by the same
+// rollout, it is skipped
+func (h *NodeRolloutHandler) createNodeReplacements(nodeReplacementMap map[string]nodeReplacementSpec, instance *navarchosv1alpha1.NodeRollout) (<-chan replacementCreationResult, error) {
+	existingNodeReplacements := &navarchosv1alpha1.NodeReplacementList{}
+	err := h.client.List(context.Background(), existingNodeReplacements)
+	if err != nil {
+		return nil, fmt.Errorf("error listing NodeReplacements: %v", err)
+	}
+
+	filteredNodeReplacements := filterReplacementsByOwner(existingNodeReplacements, instance)
+
 	outputChannel := make(chan replacementCreationResult, len(nodeReplacementMap))
 	var wg sync.WaitGroup
+
 	wg.Add(len(nodeReplacementMap))
 	for _, spec := range nodeReplacementMap {
-		go func(spec nodeReplacementSpec, instance *navarchosv1alpha1.NodeRollout, client client.Client) {
+		go func(spec nodeReplacementSpec, instance *navarchosv1alpha1.NodeRollout, filteredNr []navarchosv1alpha1.NodeReplacement, client client.Client) {
 			defer wg.Done()
 			nodeReplacement := createNodeReplacementFromSpec(spec.replacementSpec, instance, &spec.node)
 
-			err := client.Create(context.Background(), nodeReplacement)
-			if err != nil {
-				outputChannel <- replacementCreationResult{err: fmt.Errorf("failed to create NodeReplacement: %v", err), replacementCreated: ""}
+			if !replacementAlreadyExists(filteredNr, nodeReplacement) {
+				err := client.Create(context.Background(), nodeReplacement)
+				if err != nil {
+					outputChannel <- replacementCreationResult{err: fmt.Errorf("failed to create NodeReplacement: %v", err), replacementCreated: ""}
+				}
 			}
+
 			outputChannel <- replacementCreationResult{err: nil, replacementCreated: spec.replacementSpec.NodeName}
-		}(spec, instance, k8sClient)
+		}(spec, instance, filteredNodeReplacements, h.client)
 	}
 
 	wg.Wait()
 	close(outputChannel)
-	return outputChannel
+	return outputChannel, nil
+}
+
+// filterReplacementsByOwner takes a list of NodeReplacements and a NodeRollout.
+// Any NodeReplacements that are owned by the NodeRollout are returned as a list
+func filterReplacementsByOwner(nodeReplacementList *navarchosv1alpha1.NodeReplacementList, instance *navarchosv1alpha1.NodeRollout) []navarchosv1alpha1.NodeReplacement {
+	rolloutOwnerRef := newOwnerRef(instance, instance.GroupVersionKind(), true, true)
+	nodeReplacements := []navarchosv1alpha1.NodeReplacement{}
+
+	for _, nr := range nodeReplacementList.Items {
+		if containsOwnerReference(nr.ObjectMeta.OwnerReferences, rolloutOwnerRef) {
+			nodeReplacements = append(nodeReplacements, nr)
+		}
+	}
+	return nodeReplacements
+}
+
+// containsOwnerReference returns true if ownerRef exists in the list ownerRefs
+func containsOwnerReference(ownerRefs []metav1.OwnerReference, ownerRef metav1.OwnerReference) bool {
+	for _, or := range ownerRefs {
+		if reflect.DeepEqual(or, ownerRef) {
+			return true
+		}
+	}
+	return false
+}
+
+// replacementAlreadyExists returns true if nodeReplacement exists in the list nodeReplacements
+func replacementAlreadyExists(nodeReplacements []navarchosv1alpha1.NodeReplacement, nodeReplacement *navarchosv1alpha1.NodeReplacement) bool {
+	for _, nr := range nodeReplacements {
+		if (nr.Spec.NodeUID == nodeReplacement.Spec.NodeUID) && (nr.Spec.NodeName == nodeReplacement.Spec.NodeName) {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRollout) *status.Result {
 	return &status.Result{}
 }
+
 func (h *NodeRolloutHandler) handleCompleted(instance *navarchosv1alpha1.NodeRollout) *status.Result {
 	return &status.Result{}
 }
