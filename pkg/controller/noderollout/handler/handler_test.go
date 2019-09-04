@@ -50,11 +50,6 @@ var _ = Describe("Handler suite", func() {
 	const timeout = time.Second * 5
 	const consistentlyTimeout = time.Second
 
-	var nodeReplacmentTypeMeta = metav1.TypeMeta{
-		Kind:       "NodeReplacement",
-		APIVersion: "navarchos.pusher.com/v1alpha1",
-	}
-
 	// checkForNodeReplacement checks if a NodeReplacement exists with the given
 	// name, an owner reference pointing to the given node, and the given priority
 	var checkForNodeReplacement = func(name string, owner *corev1.Node, priority int) {
@@ -341,10 +336,8 @@ var _ = Describe("Handler suite", func() {
 				nrWorker1 = nodeReplacementFor(workerNode1)
 				m.Create(nrWorker1).Should(Succeed())
 
-				// m.Create() removes the TypeMeta, for some reason
-				nrMaster1.TypeMeta = nodeReplacmentTypeMeta
-				nrWorker1.TypeMeta = nodeReplacmentTypeMeta
-
+				m.Get(nrMaster1, timeout).Should(Succeed())
+				m.Get(nrWorker1, timeout).Should(Succeed())
 			})
 
 			Context("which are owned by a different NodeRollout", func() {
