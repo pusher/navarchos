@@ -172,4 +172,41 @@ var _ = Describe("when handling new NodeRollouts", func() {
 			AssertReturnsMatchingNodes()
 		})
 	})
+
+	Context("filterReplacementsByOwner", func() {
+		var replacements []navarchosv1alpha1.NodeReplacement
+		var nodeReplacementList *navarchosv1alpha1.NodeReplacementList
+		var rollout *navarchosv1alpha1.NodeRollout
+		var replacement1 navarchosv1alpha1.NodeReplacement
+		var replacement2 navarchosv1alpha1.NodeReplacement
+
+		BeforeEach(func() {
+			rollout = utils.ExampleNodeRollout.DeepCopy()
+			replacement1 = *utils.ExampleNodeReplacement.DeepCopy()
+			replacement2 = *utils.ExampleNodeReplacement.DeepCopy()
+
+			replacement1.SetOwnerReferences(
+				[]metav1.OwnerReference{utils.GetOwnerReferenceForNodeRollout(rollout)},
+			)
+
+			nodeReplacementList = &navarchosv1alpha1.NodeReplacementList{
+				Items: []navarchosv1alpha1.NodeReplacement{
+					replacement1,
+					replacement2,
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			replacements = filterReplacementsByOwner(nodeReplacementList, rollout)
+		})
+
+		It("only returns replacements that are owned by the rollout", func() {
+			Expect(replacements).To(SatisfyAll(
+				ContainElement(replacement1),
+				Not(ContainElement(replacement2)),
+			))
+		})
+
+	})
 })

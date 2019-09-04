@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 
@@ -203,25 +202,14 @@ func (h *NodeRolloutHandler) createNodeReplacements(nodeReplacementMap map[strin
 // filterReplacementsByOwner takes a list of NodeReplacements and a NodeRollout.
 // Any NodeReplacements that are owned by the NodeRollout are returned as a list
 func filterReplacementsByOwner(nodeReplacementList *navarchosv1alpha1.NodeReplacementList, instance *navarchosv1alpha1.NodeRollout) []navarchosv1alpha1.NodeReplacement {
-	rolloutOwnerRef := newOwnerRef(instance, instance.GroupVersionKind(), true, true)
 	nodeReplacements := []navarchosv1alpha1.NodeReplacement{}
 
 	for _, nr := range nodeReplacementList.Items {
-		if containsOwnerReference(nr.ObjectMeta.OwnerReferences, rolloutOwnerRef) {
+		if metav1.IsControlledBy(&nr, instance) {
 			nodeReplacements = append(nodeReplacements, nr)
 		}
 	}
 	return nodeReplacements
-}
-
-// containsOwnerReference returns true if ownerRef exists in the list ownerRefs
-func containsOwnerReference(ownerRefs []metav1.OwnerReference, ownerRef metav1.OwnerReference) bool {
-	for _, or := range ownerRefs {
-		if reflect.DeepEqual(or, ownerRef) {
-			return true
-		}
-	}
-	return false
 }
 
 // replacementAlreadyExists returns true if nodeReplacement exists in the list nodeReplacements
