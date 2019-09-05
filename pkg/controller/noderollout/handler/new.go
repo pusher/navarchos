@@ -187,6 +187,7 @@ func (h *NodeRolloutHandler) createNodeReplacements(nodeReplacementMap map[strin
 				err := client.Create(context.Background(), nodeReplacement)
 				if err != nil {
 					outputChannel <- replacementCreationResult{err: fmt.Errorf("failed to create NodeReplacement: %v", err), replacementCreated: ""}
+					return
 				}
 			}
 
