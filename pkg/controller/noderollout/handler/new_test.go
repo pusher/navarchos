@@ -545,7 +545,6 @@ var _ = Describe("when handling new NodeRollouts", func() {
 				for i := 0; i < 4; i++ {
 					output = append(output, <-outputChan)
 				}
-				fmt.Printf("output: %+v", output)
 				Expect(output).To(ConsistOf(
 					replacementCreationResult{replacementCreated: masterNode1.GetName()},
 					replacementCreationResult{replacementCreated: masterNode2.GetName()},
