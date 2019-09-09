@@ -13,12 +13,15 @@ import (
 // replacements are completed it updates the status of the NodeReplacement to
 // 'Complete'
 func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRollout) *status.Result {
-	result := &status.Result{}
+	result := &status.Result{
+		ReplacementsInProgressReason: "StillProgressing",
+	}
 
 	nodeReplacementList := &navarchosv1alpha1.NodeReplacementList{}
 	err := h.client.List(context.Background(), nodeReplacementList)
 	if err != nil {
-		result.ReplacementsCreatedError = fmt.Errorf("failed to list NodeReplacements: %v", err)
+		result.ReplacementsInProgressError = fmt.Errorf("failed to list NodeReplacements: %v", err)
+		result.ReplacementsInProgressReason = "ErrorListingNodes"
 		return result
 	}
 

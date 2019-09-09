@@ -259,5 +259,87 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				})
 			})
 		})
+
+		Context("when the ReplacementsInProgressError is not set in the Result", func() {
+			It("updates the status condition", func() {
+				m.Eventually(nodeRollout, timeout).Should(
+					utils.WithNodeRolloutStatusField("Conditions",
+						ContainElement(SatisfyAll(
+							utils.WithNodeRolloutConditionField("Type", Equal(navarchosv1alpha1.ReplacementsInProgressType)),
+							utils.WithNodeRolloutConditionField("Status", Equal(corev1.ConditionTrue)),
+							utils.WithNodeRolloutConditionField("Reason", BeEmpty()),
+							utils.WithNodeRolloutConditionField("Message", BeEmpty()),
+						)),
+					),
+				)
+			})
+
+			It("does not cause an error", func() {
+				Expect(updateErr).To(BeNil())
+			})
+		})
+
+		Context("when the ReplacementsInProgressError is set in the Result", func() {
+			BeforeEach(func() {
+				result.ReplacementsInProgressError = errors.New("error in progress replacements")
+				result.ReplacementsInProgressReason = "InProgressErrorReason"
+			})
+
+			It("updates the status condition", func() {
+				m.Eventually(nodeRollout, timeout).Should(
+					utils.WithNodeRolloutStatusField("Conditions",
+						ContainElement(SatisfyAll(
+							utils.WithNodeRolloutConditionField("Type", Equal(navarchosv1alpha1.ReplacementsInProgressType)),
+							utils.WithNodeRolloutConditionField("Status", Equal(corev1.ConditionFalse)),
+							utils.WithNodeRolloutConditionField("Reason", Equal(result.ReplacementsInProgressReason)),
+							utils.WithNodeRolloutConditionField("Message", Equal(result.ReplacementsInProgressError.Error())),
+						)),
+					),
+				)
+			})
+
+			It("does not cause an error", func() {
+				Expect(updateErr).To(BeNil())
+			})
+		})
+
+		Context("ReplacementsInProgressError and ReplacementsInProgressReason must be set together", func() {
+			Context("if only ReplacementsInProgressError is set", func() {
+				BeforeEach(func() {
+					result.ReplacementsInProgressError = errors.New("error")
+				})
+
+				It("causes an error", func() {
+					Expect(updateErr).ToNot(BeNil())
+				})
+			})
+
+			Context("if only ReplacementsInProgressReason is set", func() {
+				BeforeEach(func() {
+					result.ReplacementsInProgressReason = "test"
+				})
+
+				It("causes an error", func() {
+					Expect(updateErr).ToNot(BeNil())
+				})
+			})
+
+			Context("if both are set", func() {
+				BeforeEach(func() {
+					result.ReplacementsInProgressError = errors.New("error")
+					result.ReplacementsInProgressReason = "test"
+				})
+
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
+				})
+			})
+
+			Context("if neither are set", func() {
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
+				})
+			})
+		})
 	})
 })

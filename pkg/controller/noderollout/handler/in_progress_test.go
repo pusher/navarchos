@@ -13,9 +13,6 @@ var _ = Describe("when handling in progress NodeRollouts", func() {
 	var replacement2 *navarchosv1alpha1.NodeReplacement
 	var replacement3 *navarchosv1alpha1.NodeReplacement
 
-	var replacements []navarchosv1alpha1.NodeReplacement
-	var output []string
-
 	BeforeEach(func() {
 		replacement1 = utils.ExampleNodeReplacement.DeepCopy()
 		replacement2 = utils.ExampleNodeReplacement.DeepCopy()
@@ -31,22 +28,29 @@ var _ = Describe("when handling in progress NodeRollouts", func() {
 	})
 
 	Context("completedNodeReplacements", func() {
+		var replacements []navarchosv1alpha1.NodeReplacement
+		var output []string
+
+		JustBeforeEach(func() {
+			output = completedNodeReplacements(replacements)
+		})
+
 		Context("when no replacements are in the completed phase", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				replacements = []navarchosv1alpha1.NodeReplacement{*replacement1, *replacement2, *replacement3}
-				output = completedNodeReplacements(replacements)
 			})
+
 			It("returns an empty slice", func() {
 				Expect(output).To(BeEmpty())
 			})
 		})
+
 		Context("when only replacement1 is completed", func() {
 			var updatedReplacement1 navarchosv1alpha1.NodeReplacement
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				updatedReplacement1 = *replacement1
 				updatedReplacement1.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 				replacements = []navarchosv1alpha1.NodeReplacement{updatedReplacement1, *replacement2, *replacement3}
-				output = completedNodeReplacements(replacements)
 			})
 
 			It("returns replacement1's node only", func() {
@@ -58,7 +62,7 @@ var _ = Describe("when handling in progress NodeRollouts", func() {
 			var updatedReplacement1 navarchosv1alpha1.NodeReplacement
 			var updatedReplacement2 navarchosv1alpha1.NodeReplacement
 			var updatedReplacement3 navarchosv1alpha1.NodeReplacement
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				updatedReplacement1 = *replacement1
 				updatedReplacement2 = *replacement2
 				updatedReplacement3 = *replacement3
@@ -67,8 +71,8 @@ var _ = Describe("when handling in progress NodeRollouts", func() {
 				updatedReplacement2.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 				updatedReplacement3.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 				replacements = []navarchosv1alpha1.NodeReplacement{updatedReplacement1, updatedReplacement2, updatedReplacement3}
-				output = completedNodeReplacements(replacements)
 			})
+
 			It("returns the nodes from replacements 1,2 and 3", func() {
 				Expect(output).To(ConsistOf(replacement1.Spec.NodeName, replacement2.Spec.NodeName, replacement3.Spec.NodeName))
 			})

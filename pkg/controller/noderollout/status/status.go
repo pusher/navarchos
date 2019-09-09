@@ -26,7 +26,12 @@ func UpdateStatus(c client.Client, instance *navarchosv1alpha1.NodeRollout, resu
 	}
 
 	setReplacementsCompleted(&status, result)
+
 	err = setCondition(&status, navarchosv1alpha1.ReplacementsCreatedType, result.ReplacementsCreatedError, result.ReplacementsCreatedReason)
+	if err != nil {
+		return err
+	}
+	err = setCondition(&status, navarchosv1alpha1.ReplacementsInProgressType, result.ReplacementsInProgressError, result.ReplacementsInProgressReason)
 	if err != nil {
 		return err
 	}

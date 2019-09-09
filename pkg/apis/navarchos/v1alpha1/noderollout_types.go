@@ -89,6 +89,10 @@ const (
 	// ReplacementsCreatedType refers to whether the controller successfully
 	// created all of the required NodeRollouts
 	ReplacementsCreatedType NodeRolloutConditionType = "ReplacementsCreated"
+
+	// ReplacementsInProgressType refers to whether the controller is currently
+	// processing replacements
+	ReplacementsInProgressType NodeRolloutConditionType = "ReplacementsInProgress"
 )
 
 // NodeRolloutConditionReason represents a valid condition reason for a NodeRollout
