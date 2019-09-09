@@ -365,6 +365,9 @@ var _ = Describe("Handler suite", func() {
 						return obj
 					}, timeout).Should(Succeed())
 
+					m.Eventually(nrMaster1, timeout).Should(utils.WithField("ObjectMeta.OwnerReferences", Equal(masterNode1OwnerRefs)))
+					m.Eventually(nrWorker1, timeout).Should(utils.WithField("ObjectMeta.OwnerReferences", Equal(workerNode1OwnerRefs)))
+
 				})
 
 				It("should create new NodeReplacements for the nodes", func() {
