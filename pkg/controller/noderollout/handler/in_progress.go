@@ -6,6 +6,7 @@ import (
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/noderollout/status"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // handleInProgress handles a NodeRollout in the 'InProgress' phase. It checks
@@ -31,6 +32,7 @@ func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRo
 	if len(completed) == len(nodeReplacementList.Items) {
 		completedPhase := navarchosv1alpha1.RolloutPhaseCompleted
 		result.Phase = &completedPhase
+		result.CompletionTimestamp = metav1.Now()
 	}
 	return result
 }

@@ -78,6 +78,9 @@ type NodeRolloutStatus struct {
 	// This is used for printing in kubectl.
 	ReplacementsCompletedCount int `json:"replacementsCompletedCount,omitempty"`
 
+	// CompletionTimestamp is a timestamp for when the rollout has completed
+	CompletionTimestamp metav1.Time `json:"completionTimestamp,omitempty"`
+
 	// Conditions gives detailed condition information about the NodeRollout
 	Conditions []NodeRolloutCondition `json:"conditions,omitempty"`
 }

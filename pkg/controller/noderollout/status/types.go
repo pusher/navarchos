@@ -1,6 +1,9 @@
 package status
 
-import navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+import (
+	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // Result is used as the basis to updating the status of the NodeRollout.
 // It contains information gathered during a single run of the reconcile loop.
@@ -35,4 +38,7 @@ type Result struct {
 	// does not exist on the cluster.
 	// This list will be merged with the existing status list.
 	ReplacementsCompleted []string
+
+	// CompletionTimestamp is a timestamp for when the rollout has completed
+	CompletionTimestamp metav1.Time
 }
