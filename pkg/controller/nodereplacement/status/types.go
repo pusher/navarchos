@@ -2,6 +2,7 @@ package status
 
 import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Result is used as the basis to updating the status of the NodeReplacement.
@@ -11,6 +12,9 @@ type Result struct {
 	// set to when updating the status.
 	// If Phase == nil, don't update the Phase, else, overwrite it.
 	Phase *navarchosv1alpha1.NodeReplacementPhase
+
+	// CompletionTimestamp is a timestamp for when the rollout has completed
+	CompletionTimestamp metav1.Time
 
 	// This allows the Handler to requeue the object before starting if there is
 	// a higher priority NodeReplacement to reconcile

@@ -177,6 +177,10 @@ func (in *NodeReplacementStatus) DeepCopyInto(out *NodeReplacementStatus) {
 		*out = make([]PodReason, len(*in))
 		copy(*out, *in)
 	}
+	if in.CompletionTimestamp != nil {
+		in, out := &in.CompletionTimestamp, &out.CompletionTimestamp
+		*out = (*in).DeepCopy()
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]NodeReplacementCondition, len(*in))
@@ -318,6 +322,10 @@ func (in *NodeRolloutStatus) DeepCopyInto(out *NodeRolloutStatus) {
 		in, out := &in.ReplacementsCompleted, &out.ReplacementsCompleted
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.CompletionTimestamp != nil {
+		in, out := &in.CompletionTimestamp, &out.CompletionTimestamp
+		*out = (*in).DeepCopy()
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions

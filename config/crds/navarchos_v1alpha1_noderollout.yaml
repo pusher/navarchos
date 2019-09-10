@@ -81,6 +81,11 @@ spec:
           type: object
         status:
           properties:
+            completionTimestamp:
+              description: CompletionTimestamp is a timestamp for when the rollout
+                has completed
+              format: date-time
+              type: string
             conditions:
               description: Conditions gives detailed condition information about the
                 NodeRollout
