@@ -208,7 +208,6 @@ var _ = Describe("NodeRollout Status Suite", func() {
 					m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithField("Status.CompletionTimestamp", BeNil()))
 				})
 			})
-
 		})
 
 		Context("when an existing CompletionTimestamp is set and CompletionTimestamp is set in  the Result", func() {
