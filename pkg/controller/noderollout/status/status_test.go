@@ -9,6 +9,7 @@ import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/test/utils"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -175,6 +176,64 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			It("does not cause an error", func() {
 				Expect(updateErr).To(BeNil())
+			})
+		})
+
+		Context("when no existing CompletionTimestamp is set", func() {
+			var completionTimestamp metav1.Time
+
+			Context("and there is a CompletionTimestamp set in the Result", func() {
+				BeforeEach(func() {
+					completionTimestamp = metav1.Now()
+					Expect(nodeRollout.Status.CompletionTimestamp).To(BeNil())
+					result.CompletionTimestamp = &completionTimestamp
+				})
+
+				It("sets the CompletionTimestamp field", func() {
+					m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.CompletionTimestamp", Equal(&completionTimestamp)))
+				})
+
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
+				})
+			})
+
+			Context("and there is not a CompletionTimestamp set in the Result", func() {
+				BeforeEach(func() {
+					Expect(nodeRollout.Status.CompletionTimestamp).To(BeNil())
+				})
+
+				It("does not set the CompletionTimestamp", func() {
+					m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithField("Status.CompletionTimestamp", BeNil()))
+				})
+			})
+
+		})
+
+		Context("when an existing CompletionTimestamp is set and CompletionTimestamp is set in  the Result", func() {
+			var completionTimestamp metav1.Time
+			var existingCompletionTimestamp metav1.Time
+
+			BeforeEach(func() {
+				// Set up the existing expected state
+				existingCompletionTimestamp = metav1.NewTime(metav1.Now().Add(-time.Hour))
+				m.Update(nodeRollout, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
+					nr.Status.CompletionTimestamp = &existingCompletionTimestamp
+					return nr
+				}, timeout).Should(Succeed())
+
+				completionTimestamp = metav1.Now()
+				result.CompletionTimestamp = &completionTimestamp
+			})
+
+			It("does not update the CompletionTimestamp field", func() {
+				m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithField("Status.CompletionTimestamp", Equal(&existingCompletionTimestamp)))
+			})
+
+			It("returns an error", func() {
+				Expect(updateErr).ToNot(BeNil())
+				Expect(updateErr.Error()).To(Equal("cannot update CompletionTimestamp, field is immutable once set"))
 			})
 		})
 

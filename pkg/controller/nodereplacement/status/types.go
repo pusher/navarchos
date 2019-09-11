@@ -14,7 +14,7 @@ type Result struct {
 	Phase *navarchosv1alpha1.NodeReplacementPhase
 
 	// CompletionTimestamp is a timestamp for when the rollout has completed
-	CompletionTimestamp metav1.Time
+	CompletionTimestamp *metav1.Time
 
 	// This allows the Handler to requeue the object before starting if there is
 	// a higher priority NodeReplacement to reconcile

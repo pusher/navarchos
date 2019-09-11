@@ -32,7 +32,9 @@ func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRo
 	if len(completed) == len(nodeReplacementList.Items) {
 		completedPhase := navarchosv1alpha1.RolloutPhaseCompleted
 		result.Phase = &completedPhase
-		result.CompletionTimestamp = metav1.Now()
+
+		now := metav1.Now()
+		result.CompletionTimestamp = &now
 	}
 	return result
 }

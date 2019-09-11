@@ -40,5 +40,5 @@ type Result struct {
 	ReplacementsCompleted []string
 
 	// CompletionTimestamp is a timestamp for when the rollout has completed
-	CompletionTimestamp metav1.Time
+	CompletionTimestamp *metav1.Time
 }
