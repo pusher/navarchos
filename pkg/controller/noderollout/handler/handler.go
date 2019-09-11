@@ -52,7 +52,3 @@ func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) (*s
 		return h.handleNew(instance)
 	}
 }
-
-func (h *NodeRolloutHandler) handleCompleted(instance *navarchosv1alpha1.NodeRollout) (*status.Result, error) {
-	return &status.Result{}, nil
-}
