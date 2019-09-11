@@ -112,6 +112,12 @@ var _ = Describe("Handler suite", func() {
 		m.Create(workerNode1).Should(Succeed())
 		m.Create(workerNode2).Should(Succeed())
 		m.Create(otherNode).Should(Succeed())
+
+		m.Get(masterNode1).Should(Succeed())
+		m.Get(masterNode2).Should(Succeed())
+		m.Get(workerNode1).Should(Succeed())
+		m.Get(workerNode2).Should(Succeed())
+		m.Get(otherNode).Should(Succeed())
 	})
 
 	AfterEach(func() {
@@ -359,6 +365,9 @@ var _ = Describe("Handler suite", func() {
 						return obj
 					}, timeout).Should(Succeed())
 
+					m.Eventually(nrMaster1, timeout).Should(utils.WithField("ObjectMeta.OwnerReferences", Equal(masterNode1OwnerRefs)))
+					m.Eventually(nrWorker1, timeout).Should(utils.WithField("ObjectMeta.OwnerReferences", Equal(workerNode1OwnerRefs)))
+
 				})
 
 				It("should create new NodeReplacements for the nodes", func() {
@@ -410,6 +419,11 @@ var _ = Describe("Handler suite", func() {
 			m.Create(nrWorker1).Should(Succeed())
 			m.Create(nrWorker2).Should(Succeed())
 
+			m.Get(nrMaster1).Should(Succeed())
+			m.Get(nrMaster2).Should(Succeed())
+			m.Get(nrWorker1).Should(Succeed())
+			m.Get(nrWorker2).Should(Succeed())
+
 			// Set the NodeRollout as we expect it to be at this point
 			m.Update(nodeRollout, func(obj utils.Object) utils.Object {
 				nr, _ := obj.(*navarchosv1alpha1.NodeRollout)
@@ -438,9 +452,11 @@ var _ = Describe("Handler suite", func() {
 					nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 					return nr
 				}, timeout).Should(Succeed())
+
+				m.Eventually(nrMaster1, timeout).Should(utils.WithField("Status.Phase", Equal(navarchosv1alpha1.ReplacementPhaseCompleted)))
 			})
 
-			PIt("list the completed NodeReplacement in the Result ReplacementsCompleted field", func() {
+			It("list the completed NodeReplacement in the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(ConsistOf("example-master-1"))
 			})
 		})
@@ -453,10 +469,12 @@ var _ = Describe("Handler suite", func() {
 						nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
 						return nr
 					}, timeout).Should(Succeed())
+					m.Eventually(nr, timeout).Should(utils.WithField("Status.Phase", Equal(navarchosv1alpha1.ReplacementPhaseCompleted)))
+
 				}
 			})
 
-			PIt("lists the completed NodeReplacements in the Result ReplacementsCompleted field", func() {
+			It("lists the completed NodeReplacements in the Result ReplacementsCompleted field", func() {
 				Expect(result.ReplacementsCompleted).To(ConsistOf(
 					"example-master-1",
 					"example-master-2",
@@ -465,8 +483,9 @@ var _ = Describe("Handler suite", func() {
 				))
 			})
 
-			PIt("sets the Result Phase field to Completed", func() {
-				Expect(result.Phase).To(Equal(navarchosv1alpha1.RolloutPhaseCompleted))
+			It("sets the Result Phase field to Completed", func() {
+				completedPhase := navarchosv1alpha1.RolloutPhaseCompleted
+				Expect(result.Phase).To(Equal(&completedPhase))
 			})
 		})
 	})

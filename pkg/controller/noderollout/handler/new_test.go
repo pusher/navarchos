@@ -232,6 +232,26 @@ var _ = Describe("when handling new NodeRollouts", func() {
 		var outputChan <-chan replacementCreationResult
 		var createErr error
 
+		var nodeReplacementFor = func(node *corev1.Node, replacementRollout *navarchosv1alpha1.NodeRollout) *navarchosv1alpha1.NodeReplacement {
+			return &navarchosv1alpha1.NodeReplacement{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "navarchos.pusher.com/v1alpha1",
+					Kind:       "NodeReplacement",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: fmt.Sprintf("%s-", node.Name),
+					OwnerReferences: []metav1.OwnerReference{
+						utils.GetOwnerReferenceForNode(node),
+						utils.GetOwnerReferenceForNodeRollout(replacementRollout),
+					},
+				},
+				Spec: navarchosv1alpha1.NodeReplacementSpec{
+					NodeName: node.GetName(),
+					NodeUID:  node.GetUID(),
+				},
+			}
+		}
+
 		BeforeEach(func() {
 			mgr, err := manager.New(cfg, manager.Options{
 				MetricsBindAddress: "0",
@@ -334,43 +354,23 @@ var _ = Describe("when handling new NodeRollouts", func() {
 		})
 
 		Context("when all of the replacements to be created already exist", func() {
-			var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
-				return &navarchosv1alpha1.NodeReplacement{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: "navarchos.pusher.com/v1alpha1",
-						Kind:       "NodeReplacement",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						GenerateName: fmt.Sprintf("%s-", node.Name),
-						OwnerReferences: []metav1.OwnerReference{
-							utils.GetOwnerReferenceForNode(node),
-							utils.GetOwnerReferenceForNodeRollout(rollout),
-						},
-					},
-					Spec: navarchosv1alpha1.NodeReplacementSpec{
-						NodeName: node.GetName(),
-						NodeUID:  node.GetUID(),
-					},
-				}
-			}
-
 			var masterReplacement1 *navarchosv1alpha1.NodeReplacement
 			var masterReplacement2 *navarchosv1alpha1.NodeReplacement
 			var workerReplacement1 *navarchosv1alpha1.NodeReplacement
 			var workerReplacement2 *navarchosv1alpha1.NodeReplacement
 
 			BeforeEach(func() {
-				masterReplacement1 = nodeReplacementFor(masterNode1)
+				masterReplacement1 = nodeReplacementFor(masterNode1, rollout)
 				m.Create(masterReplacement1).Should(Succeed())
 				m.Get(masterReplacement1).Should(Succeed())
-				masterReplacement2 = nodeReplacementFor(masterNode2)
+				masterReplacement2 = nodeReplacementFor(masterNode2, rollout)
 				m.Create(masterReplacement2).Should(Succeed())
 				m.Get(masterReplacement2).Should(Succeed())
 
-				workerReplacement1 = nodeReplacementFor(workerNode1)
+				workerReplacement1 = nodeReplacementFor(workerNode1, rollout)
 				m.Create(workerReplacement1).Should(Succeed())
 				m.Get(workerReplacement1).Should(Succeed())
-				workerReplacement2 = nodeReplacementFor(workerNode2)
+				workerReplacement2 = nodeReplacementFor(workerNode2, rollout)
 				m.Create(workerReplacement2).Should(Succeed())
 				m.Get(workerReplacement2).Should(Succeed())
 			})
@@ -406,34 +406,14 @@ var _ = Describe("when handling new NodeRollouts", func() {
 		})
 
 		Context("when some of the replacements to be created already exist", func() {
-			var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
-				return &navarchosv1alpha1.NodeReplacement{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: "navarchos.pusher.com/v1alpha1",
-						Kind:       "NodeReplacement",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						GenerateName: fmt.Sprintf("%s-", node.Name),
-						OwnerReferences: []metav1.OwnerReference{
-							utils.GetOwnerReferenceForNode(node),
-							utils.GetOwnerReferenceForNodeRollout(rollout),
-						},
-					},
-					Spec: navarchosv1alpha1.NodeReplacementSpec{
-						NodeName: node.GetName(),
-						NodeUID:  node.GetUID(),
-					},
-				}
-			}
-
 			var masterReplacement1 *navarchosv1alpha1.NodeReplacement
 			var masterReplacement2 *navarchosv1alpha1.NodeReplacement
 
 			BeforeEach(func() {
-				masterReplacement1 = nodeReplacementFor(masterNode1)
+				masterReplacement1 = nodeReplacementFor(masterNode1, rollout)
 				m.Create(masterReplacement1).Should(Succeed())
 				m.Get(masterReplacement1).Should(Succeed())
-				masterReplacement2 = nodeReplacementFor(masterNode2)
+				masterReplacement2 = nodeReplacementFor(masterNode2, rollout)
 				m.Create(masterReplacement2).Should(Succeed())
 				m.Get(masterReplacement2).Should(Succeed())
 			})
@@ -441,9 +421,15 @@ var _ = Describe("when handling new NodeRollouts", func() {
 			It("does not create new NodeReplacements for the masters", func() {
 				replacementList := &navarchosv1alpha1.NodeReplacementList{}
 
-				m.Consistently(replacementList, consistentlyTimeout).Should(utils.WithField("Items", SatisfyAll(
-					ContainElement(*masterReplacement1),
-					ContainElement(*masterReplacement2),
+				m.Consistently(replacementList, consistentlyTimeout).ShouldNot(utils.WithField("Items", SatisfyAll(
+					ContainElement(SatisfyAll(
+						utils.WithField("Spec.NodeUID", Equal(masterReplacement1.Spec.NodeUID)),
+						utils.WithField("ObjectMeta.Name", Not(Equal(masterReplacement1.ObjectMeta.Name))),
+					)),
+					ContainElement(SatisfyAll(
+						utils.WithField("Spec.NodeUID", Equal(masterReplacement2.Spec.NodeUID)),
+						utils.WithField("ObjectMeta.Name", Not(Equal(masterReplacement2.ObjectMeta.Name))),
+					)),
 				)))
 			})
 
@@ -482,25 +468,6 @@ var _ = Describe("when handling new NodeRollouts", func() {
 			var workerReplacement1 *navarchosv1alpha1.NodeReplacement
 			var workerReplacement2 *navarchosv1alpha1.NodeReplacement
 
-			var nodeReplacementFor = func(node *corev1.Node) *navarchosv1alpha1.NodeReplacement {
-				return &navarchosv1alpha1.NodeReplacement{
-					TypeMeta: metav1.TypeMeta{
-						APIVersion: "navarchos.pusher.com/v1alpha1",
-						Kind:       "NodeReplacement",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						GenerateName: fmt.Sprintf("%s-", node.Name),
-						OwnerReferences: []metav1.OwnerReference{
-							utils.GetOwnerReferenceForNode(node),
-							utils.GetOwnerReferenceForNodeRollout(newRollout),
-						},
-					},
-					Spec: navarchosv1alpha1.NodeReplacementSpec{
-						NodeName: node.GetName(),
-						NodeUID:  node.GetUID(),
-					},
-				}
-			}
 			BeforeEach(func() {
 				newRollout = utils.ExampleNodeRollout.DeepCopy()
 				newRollout.ObjectMeta.SetName("example-2")
@@ -508,10 +475,10 @@ var _ = Describe("when handling new NodeRollouts", func() {
 				m.Create(newRollout).Should(Succeed())
 				m.Get(newRollout, timeout).Should(Succeed())
 
-				masterReplacement1 = nodeReplacementFor(masterNode1)
-				masterReplacement2 = nodeReplacementFor(masterNode2)
-				workerReplacement1 = nodeReplacementFor(workerNode1)
-				workerReplacement2 = nodeReplacementFor(workerNode2)
+				masterReplacement1 = nodeReplacementFor(masterNode1, newRollout)
+				masterReplacement2 = nodeReplacementFor(masterNode2, newRollout)
+				workerReplacement1 = nodeReplacementFor(workerNode1, newRollout)
+				workerReplacement2 = nodeReplacementFor(workerNode2, newRollout)
 
 				m.Create(masterReplacement1).Should(Succeed())
 				m.Get(masterReplacement1).Should(Succeed())
@@ -545,7 +512,6 @@ var _ = Describe("when handling new NodeRollouts", func() {
 				for i := 0; i < 4; i++ {
 					output = append(output, <-outputChan)
 				}
-				fmt.Printf("output: %+v", output)
 				Expect(output).To(ConsistOf(
 					replacementCreationResult{replacementCreated: masterNode1.GetName()},
 					replacementCreationResult{replacementCreated: masterNode2.GetName()},

@@ -53,10 +53,6 @@ func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) *st
 	}
 }
 
-func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRollout) *status.Result {
-	return &status.Result{}
-}
-
 func (h *NodeRolloutHandler) handleCompleted(instance *navarchosv1alpha1.NodeRollout) *status.Result {
 	return &status.Result{}
 }

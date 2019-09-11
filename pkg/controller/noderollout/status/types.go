@@ -17,6 +17,13 @@ type Result struct {
 	// NodeReplacements.
 	ReplacementsCreatedReason navarchosv1alpha1.NodeRolloutConditionReason
 
+	// This should contain any errors related to InProgress NodeReplacements.
+	ReplacementsInProgressError error
+
+	// This is the short reason description for the errors related to in progress
+	// NodeReplacements.
+	ReplacementsInProgressReason navarchosv1alpha1.NodeRolloutConditionReason
+
 	// This should list all NodeReplacements created.
 	// This will be a list of the node names that are going to be replaced.
 	// This should only be set on the first pass of the controller while the

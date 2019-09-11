@@ -38,6 +38,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	err := h.client.List(context.Background(), nodes)
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to list nodes: %v", err)
+		result.ReplacementsCreatedReason = "ErrorListingNodes"
 		return result
 	}
 
@@ -45,6 +46,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	nodeReplacementMap, err = filterNodeSelectors(nodes, instance.Spec.NodeSelectors, nodeReplacementMap)
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to filter nodes: %v", err)
+		result.ReplacementsCreatedReason = "ErrorFilteringNodes"
 		return result
 	}
 	nodeReplacementMap = filterNodeNames(nodes, instance.Spec.NodeNames, nodeReplacementMap)
@@ -52,6 +54,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	outputChannel, err := h.createNodeReplacements(nodeReplacementMap, instance)
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to create node replacements: %v", err)
+		result.ReplacementsCreatedReason = "ErrorCreatingNodeReplacements"
 		return result
 	}
 
@@ -73,6 +76,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 			errSlice = append(errSlice, fmt.Sprintf("Error: \"%s\" has occurred \"%d\" time(s)", errName.Error(), count))
 		}
 		result.ReplacementsCreatedError = fmt.Errorf(strings.Join(errSlice, ",\n"))
+		result.ReplacementsCreatedReason = "ErrorCreatingNodeReplacements"
 		return result
 	}
 
