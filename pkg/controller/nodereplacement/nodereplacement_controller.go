@@ -95,7 +95,10 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	result := r.handler.Handle(instance)
+	result, err := r.handler.Handle(instance)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("error handling replacement %s: %v", instance.GetName(), err)
+	}
 	err = status.UpdateStatus(r.Client, instance, result)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
