@@ -13,7 +13,7 @@ import (
 // the number of completed NodeReplacements, and updates the result. If all
 // replacements are completed it updates the status of the NodeReplacement to
 // 'Complete'
-func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRollout) *status.Result {
+func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRollout) (*status.Result, error) {
 	result := &status.Result{
 		ReplacementsInProgressReason: "StillProgressing",
 	}
@@ -23,7 +23,7 @@ func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRo
 	if err != nil {
 		result.ReplacementsInProgressError = fmt.Errorf("failed to list NodeReplacements: %v", err)
 		result.ReplacementsInProgressReason = "ErrorListingNodes"
-		return result
+		return result, result.ReplacementsInProgressError
 	}
 
 	completed := completedNodeReplacements(nodeReplacementList.Items)
@@ -36,7 +36,7 @@ func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRo
 		now := metav1.Now()
 		result.CompletionTimestamp = &now
 	}
-	return result
+	return result, nil
 }
 
 // completedNodeReplacements takes a slice of replacements and returns a list of the nodes'

@@ -36,6 +36,7 @@ var _ = Describe("Handler suite", func() {
 	var h *NodeRolloutHandler
 	var opts *Options
 	var result *status.Result
+	var handleErr error
 
 	var nodeRollout *navarchosv1alpha1.NodeRollout
 	var mgrStopped *sync.WaitGroup
@@ -137,7 +138,7 @@ var _ = Describe("Handler suite", func() {
 
 	Context("when the Handler function is called on a New NodeRollout", func() {
 		JustBeforeEach(func() {
-			result = h.Handle(nodeRollout)
+			result, handleErr = h.Handle(nodeRollout)
 		})
 
 		Context("with NodeSelectors only", func() {
@@ -197,6 +198,10 @@ var _ = Describe("Handler suite", func() {
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCreatedError).To(BeNil())
 				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
+			})
+
+			It("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -266,6 +271,10 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.ReplacementsCreatedError).To(BeNil())
 				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
 			})
+
+			It("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("with NodeNames and NodeSelectors", func() {
@@ -320,6 +329,10 @@ var _ = Describe("Handler suite", func() {
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCreatedError).To(BeNil())
 				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
+			})
+
+			It("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -436,7 +449,7 @@ var _ = Describe("Handler suite", func() {
 		})
 
 		JustBeforeEach(func() {
-			result = h.Handle(nodeRollout)
+			result, handleErr = h.Handle(nodeRollout)
 		})
 
 		Context("if nothing has changed", func() {
@@ -511,7 +524,7 @@ var _ = Describe("Handler suite", func() {
 		})
 
 		JustBeforeEach(func() {
-			result = h.Handle(nodeRollout)
+			result, handleErr = h.Handle(nodeRollout)
 		})
 
 		Context("and the NodeRollout is younger than the maximum age", func() {
