@@ -38,6 +38,7 @@ var _ = Describe("Handler suite", func() {
 	var h *NodeReplacementHandler
 	var opts *Options
 	var result *status.Result
+	var handleErr error
 
 	var nodeReplacement *navarchosv1alpha1.NodeReplacement
 	var mgrStopped *sync.WaitGroup
@@ -125,6 +126,7 @@ var _ = Describe("Handler suite", func() {
 			&navarchosv1alpha1.NodeReplacementList{},
 			&corev1.NodeList{},
 			&corev1.PodList{},
+			&policyv1beta1.PodDisruptionBudgetList{},
 		)
 
 		m.Eventually(&corev1.PodList{}, timeout).Should(utils.WithListItems(BeEmpty()))
@@ -136,7 +138,7 @@ var _ = Describe("Handler suite", func() {
 
 	Context("when the Handler is called on a New NodeReplacement", func() {
 		JustBeforeEach(func() {
-			result = h.Handle(nodeReplacement)
+			result, handleErr = h.Handle(nodeReplacement)
 		})
 
 		Context("if a another NodeReplacement is higher priority", func() {
@@ -162,6 +164,10 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set the Result NodePods field", func() {
 				Expect(result.NodePods).To(BeEmpty())
+			})
+
+			PIt("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -197,6 +203,10 @@ var _ = Describe("Handler suite", func() {
 			PIt("sets the Result Phase field to InProgress", func() {
 				Expect(result.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseInProgress))
 			})
+
+			PIt("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("if a another NodeReplacement is in Phase InProgress", func() {
@@ -215,6 +225,10 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set the Result NodePods field", func() {
 				Expect(result.NodePods).To(BeEmpty())
+			})
+
+			PIt("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -246,6 +260,10 @@ var _ = Describe("Handler suite", func() {
 			}
 		})
 
+		PIt("should not return an error", func() {
+			Expect(handleErr).ToNot(HaveOccurred())
+		})
+
 		Context("when a pod is owned by a DeamonSet", func() {
 			BeforeEach(func() {
 				ds := utils.ExampleDaemonSet.DeepCopy()
@@ -261,6 +279,10 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.IgnoredPods).To(ConsistOf(
 					navarchosv1alpha1.PodReason{Name: "pod-1", Reason: "pod owned by a DaemonSet"},
 				))
+			})
+
+			PIt("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 	})
@@ -280,7 +302,7 @@ var _ = Describe("Handler suite", func() {
 
 		// Since HandleInProgress could take some time, we set a timeout
 		JustBeforeEach(func(done Done) {
-			result = h.Handle(nodeReplacement)
+			result, handleErr = h.Handle(nodeReplacement)
 			close(done)
 		}, 2*timeout.Seconds())
 
@@ -306,6 +328,10 @@ var _ = Describe("Handler suite", func() {
 			m.Get(workerNode1, timeout).ShouldNot(Succeed())
 		})
 
+		PIt("should not return an error", func() {
+			Expect(handleErr).ToNot(HaveOccurred())
+		})
+
 		Context("if a Pod has already been evicted", func() {
 			BeforeEach(func() {
 				nodeReplacement.Status.NodePods = append(nodeReplacement.Status.NodePods, "evicted-pod")
@@ -318,6 +344,10 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not list it in the Result FailedPods field", func() {
 				Expect(result.FailedPods).To(BeEmpty())
+			})
+
+			PIt("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
@@ -354,6 +384,10 @@ var _ = Describe("Handler suite", func() {
 				It("does not delete the node", func() {
 					m.Consistently(workerNode1).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
 				})
+
+				PIt("should return an error", func() {
+					Expect(handleErr).To(MatchError(Equal("failure evicting pods")))
+				})
 			})
 
 			Context("temporarily", func() {
@@ -374,6 +408,10 @@ var _ = Describe("Handler suite", func() {
 				PIt("retries the eviction until it passes", func() {
 					Expect(result.FailedPods).To(BeEmpty())
 					Expect(result.EvictedPods).To(ContainElement(Equal("pod-1")))
+				})
+
+				PIt("should not return an error", func() {
+					Expect(handleErr).ToNot(HaveOccurred())
 				})
 			})
 		})

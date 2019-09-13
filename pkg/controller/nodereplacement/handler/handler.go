@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
@@ -40,6 +41,6 @@ func NewNodeReplacementHandler(c client.Client, opts *Options) *NodeReplacementH
 
 // Handle performs the business logic of a NodeReplacement and returns
 // information in a Result
-func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacement) *status.Result {
-	return &status.Result{}
+func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
+	return &status.Result{}, fmt.Errorf("method not implemented")
 }
