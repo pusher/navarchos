@@ -520,9 +520,10 @@ var _ = Describe("Handler suite", func() {
 			})
 		})
 
-		Context("and the NodeRollout is older than the maximum age", func() {
+		Context("and the NodeRollout was marked completed more than the maximum age ago", func() {
 			BeforeEach(func() {
-				nodeRollout.CreationTimestamp = metav1.NewTime(time.Now().Add(-h.maxAge - time.Hour))
+				time := metav1.NewTime(time.Now().Add(-h.maxAge - time.Hour))
+				nodeRollout.Status.CompletionTimestamp = &time
 			})
 
 			PIt("deletes the NodeRollout", func() {

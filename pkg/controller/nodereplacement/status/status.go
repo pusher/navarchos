@@ -33,6 +33,11 @@ func UpdateStatus(c client.Client, instance *navarchosv1alpha1.NodeReplacement, 
 
 	setFailedPods(&status, result)
 
+	err = setCompletionTimestamp(&status, result)
+	if err != nil {
+		return err
+	}
+
 	err = setCondition(&status, navarchosv1alpha1.NodeCordonedType, result.NodeCordonError, result.NodeCordonReason)
 	if err != nil {
 		return err
@@ -107,6 +112,20 @@ func setFailedPods(status *navarchosv1alpha1.NodeReplacementStatus, result *Resu
 		status.FailedPods = result.FailedPods
 		status.FailedPodsCount = len(result.FailedPods)
 	}
+}
+
+// setCompletionTimestamp sets the setCompletionTimestamp field. If it has not
+// been set before it is added. If it has been set before an error is returned
+func setCompletionTimestamp(status *navarchosv1alpha1.NodeReplacementStatus, result *Result) error {
+	if status.CompletionTimestamp != nil && result.CompletionTimestamp != nil {
+		return fmt.Errorf("cannot update CompletionTimestamp, field is immutable once set")
+	}
+
+	if status.CompletionTimestamp == nil && result.CompletionTimestamp != nil {
+		status.CompletionTimestamp = result.CompletionTimestamp
+	}
+
+	return nil
 }
 
 // newNodeReplacementCondition creates a new condition NodeReplacementCondition

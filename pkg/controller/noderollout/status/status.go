@@ -27,6 +27,11 @@ func UpdateStatus(c client.Client, instance *navarchosv1alpha1.NodeRollout, resu
 
 	setReplacementsCompleted(&status, result)
 
+	err = setCompletionTimestamp(&status, result)
+	if err != nil {
+		return err
+	}
+
 	err = setCondition(&status, navarchosv1alpha1.ReplacementsCreatedType, result.ReplacementsCreatedError, result.ReplacementsCreatedReason)
 	if err != nil {
 		return err
@@ -83,6 +88,21 @@ func setReplacementsCompleted(status *navarchosv1alpha1.NodeRolloutStatus, resul
 		status.ReplacementsCompleted = result.ReplacementsCompleted
 		status.ReplacementsCompletedCount = len(result.ReplacementsCompleted)
 	}
+
+}
+
+// setCompletionTimestamp sets the setCompletionTimestamp field. If it has not
+// been set before it is added. If it has been set before an error is returned
+func setCompletionTimestamp(status *navarchosv1alpha1.NodeRolloutStatus, result *Result) error {
+	if status.CompletionTimestamp != nil && result.CompletionTimestamp != nil {
+		return fmt.Errorf("cannot update CompletionTimestamp, field is immutable once set")
+	}
+
+	if status.CompletionTimestamp == nil && result.CompletionTimestamp != nil {
+		status.CompletionTimestamp = result.CompletionTimestamp
+	}
+
+	return nil
 
 }
 

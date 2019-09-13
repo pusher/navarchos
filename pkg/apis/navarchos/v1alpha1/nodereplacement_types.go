@@ -84,6 +84,9 @@ type NodeReplacementStatus struct {
 	// FailedPodsCount is the count of FailedPods.
 	FailedPodsCount int `json:"failedPodsCount,omitempty"`
 
+	// CompletionTimestamp is a timestamp for when the replacement has completed
+	CompletionTimestamp *metav1.Time `json:"completionTimestamp,omitempty"`
+
 	// Conditions gives detailed condition information about the NodeReplacement
 	Conditions []NodeReplacementCondition `json:"conditions,omitempty"`
 }
