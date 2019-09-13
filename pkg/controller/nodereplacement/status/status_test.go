@@ -373,12 +373,12 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 
 				It("adds the status condition with Status True", func() {
 					m.Eventually(nodeReplacement, timeout).Should(
-						utils.WithNodeReplacementStatusField("Conditions",
+						utils.WithField("Status.Conditions",
 							ContainElement(SatisfyAll(
-								utils.WithNodeReplacementConditionField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
-								utils.WithNodeReplacementConditionField("Status", Equal(corev1.ConditionTrue)),
-								utils.WithNodeReplacementConditionField("Reason", Equal(navarchosv1alpha1.NodeReplacementConditionReason("NodeCordoned"))),
-								utils.WithNodeReplacementConditionField("Message", BeEmpty()),
+								utils.WithField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
+								utils.WithField("Status", Equal(corev1.ConditionTrue)),
+								utils.WithField("Reason", Equal(navarchosv1alpha1.NodeReplacementConditionReason("NodeCordoned"))),
+								utils.WithField("Message", BeEmpty()),
 							)),
 						),
 					)
@@ -392,9 +392,9 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			Context("and NodeCordonReason is not set", func() {
 				It("should not add a status condition", func() {
 					m.Eventually(nodeReplacement, timeout).Should(
-						utils.WithNodeReplacementStatusField("Conditions",
+						utils.WithField("Status.Conditions",
 							Not(ContainElement(
-								utils.WithNodeReplacementConditionField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
+								utils.WithField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
 							)),
 						),
 					)

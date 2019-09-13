@@ -157,8 +157,8 @@ func filterOutCondition(conditions []navarchosv1alpha1.NodeRolloutCondition, con
 }
 
 func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarchosv1alpha1.NodeRolloutConditionType, condErr error, reason navarchosv1alpha1.NodeRolloutConditionReason) error {
-	if (condErr == nil) != (reason == "") {
-		return fmt.Errorf("Either ReplacementsCompletedError or ReplacementsCompletedReason is not set")
+	if condErr != nil && reason == "" {
+		return fmt.Errorf("if ReplacementsCompletedError is set,  ReplacementsCompletedReason must also be set")
 	}
 	if condErr != nil {
 		// Error for condition , set condition appropriately
@@ -172,14 +172,16 @@ func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarcho
 		return nil
 	}
 
-	// No error for condition, set condition appropriately
-	cond := newNodeRolloutCondition(
-		condType,
-		corev1.ConditionTrue,
-		reason,
-		"",
-	)
-	setNodeRolloutCondition(status, *cond)
+	if reason != "" {
+		// No error for condition, set condition appropriately
+		cond := newNodeRolloutCondition(
+			condType,
+			corev1.ConditionTrue,
+			reason,
+			"",
+		)
+		setNodeRolloutCondition(status, *cond)
+	}
 
 	return nil
 }
