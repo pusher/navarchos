@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	. "github.com/onsi/gomega"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,11 +26,11 @@ import (
 
 var _ = Describe("StorageNodeReplacement", func() {
 	key := types.NamespacedName{
-		Name:      "foo",
+		Name: "foo",
 	}
 	created := &NodeReplacement{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
+			Name: "foo",
 		}}
 
 	It("can create, update and delete the object", func() {
@@ -53,7 +53,5 @@ var _ = Describe("StorageNodeReplacement", func() {
 		Expect(c.Delete(context.TODO(), fetched)).NotTo(HaveOccurred())
 		Expect(c.Get(context.TODO(), key, fetched)).To(HaveOccurred())
 	})
-
-
 
 })
