@@ -153,7 +153,7 @@ var _ = Describe("Handler suite", func() {
 					nr.Spec.ReplacementSpec.Priority = intPtr(0)
 					return nr
 				}, timeout).Should(Succeed())
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(intPtr(0)))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(0))))
 				Expect(*highPriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
@@ -183,7 +183,7 @@ var _ = Describe("Handler suite", func() {
 					nr.Spec.ReplacementSpec.Priority = intPtr(10)
 					return nr
 				}, timeout).Should(Succeed())
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementSpecField("ReplacementSpec", utils.WithReplacementSpecField("Priority", Equal(intPtr(10)))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(10))))
 				Expect(*samePriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically("==", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
@@ -233,11 +233,11 @@ var _ = Describe("Handler suite", func() {
 		})
 
 		PIt("should cordon the node", func() {
-			m.Eventually(workerNode1, timeout).Should(utils.WithNodeSpecField("Unschedulable", BeTrue()))
-			m.Eventually(workerNode1, timeout).Should(utils.WithNodeSpecField("Taints",
+			m.Eventually(workerNode1, timeout).Should(utils.WithField("Spec.Unschedulable", BeTrue()))
+			m.Eventually(workerNode1, timeout).Should(utils.WithField("Spec.Taints",
 				ContainElement(SatisfyAll(
-					utils.WithTaintField("Effect", Equal("NoSchedule")),
-					utils.WithTaintField("Key", Equal("node.kubernetes.io/unschedulable")),
+					utils.WithField("Effect", Equal("NoSchedule")),
+					utils.WithField("Key", Equal("node.kubernetes.io/unschedulable")),
 				)),
 			))
 		})
@@ -256,7 +256,7 @@ var _ = Describe("Handler suite", func() {
 
 		It("should not evict any pods", func() {
 			for _, pod := range []*corev1.Pod{pod1, pod2, pod3, pod4} {
-				m.Consistently(pod).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+				m.Consistently(pod).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 			}
 		})
 
@@ -308,12 +308,12 @@ var _ = Describe("Handler suite", func() {
 
 		PIt("evicts all pods in the NodePods list", func() {
 			for _, pod := range []*corev1.Pod{pod1, pod2, pod3} {
-				m.Eventually(pod, timeout).ShouldNot(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+				m.Eventually(pod, timeout).ShouldNot(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 			}
 		})
 
 		It("does not evict pods not listed in the NodePods list", func() {
-			m.Consistently(pod4, consistentlyTimeout).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+			m.Consistently(pod4, consistentlyTimeout).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 		})
 
 		PIt("adds evicted pods to the Result EvictedPods field", func() {
@@ -382,7 +382,7 @@ var _ = Describe("Handler suite", func() {
 				})
 
 				It("does not delete the node", func() {
-					m.Consistently(workerNode1).Should(utils.WithObjectMetaField("DeletionTimestamp", BeNil()))
+					m.Consistently(workerNode1).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 				})
 
 				PIt("should return an error", func() {

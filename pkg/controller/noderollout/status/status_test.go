@@ -59,7 +59,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 
 			It("updates the phase in the status", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("Phase", Equal(phase)))
+				m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.Phase", Equal(phase)))
 			})
 
 			It("does not cause an error", func() {
@@ -77,11 +77,11 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 
 			It("sets the ReplacementsCreated field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreated", Equal(replacementsCreated)))
+				m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.ReplacementsCreated", Equal(replacementsCreated)))
 			})
 
 			It("sets the ReplacementsCreatedCount field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreatedCount", Equal(len(replacementsCreated))))
+				m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.ReplacementsCreatedCount", Equal(len(replacementsCreated))))
 			})
 
 			It("does not cause an error", func() {
@@ -108,11 +108,11 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 
 			It("does not update the ReplacementsCreated field", func() {
-				m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreated", Equal(existingReplacementsCreated)))
+				m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithField("Status.ReplacementsCreated", Equal(existingReplacementsCreated)))
 			})
 
 			It("does not update the ReplacementsCreatedCount field", func() {
-				m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCreatedCount", Equal(len(existingReplacementsCreated))))
+				m.Consistently(nodeRollout, consistentlyTimeout).Should(utils.WithField("Status.ReplacementsCreatedCount", Equal(len(existingReplacementsCreated))))
 			})
 
 			It("returns an error", func() {
@@ -131,11 +131,11 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			})
 
 			It("sets the ReplacementsCompleted field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCompleted", Equal(replacementsCompleted)))
+				m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.ReplacementsCompleted", Equal(replacementsCompleted)))
 			})
 
 			It("sets the ReplacementsCompletedCount field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCompletedCount", Equal(len(replacementsCompleted))))
+				m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.ReplacementsCompletedCount", Equal(len(replacementsCompleted))))
 			})
 
 			It("does not cause an error", func() {
@@ -167,12 +167,12 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			It("joins the new and existing ReplacementsCompleted field", func() {
 				m.Eventually(nodeRollout, timeout).Should(
-					utils.WithNodeRolloutStatusField("ReplacementsCompleted", ConsistOf(expectedReplacementsCompleted)),
+					utils.WithField("Status.ReplacementsCompleted", ConsistOf(expectedReplacementsCompleted)),
 				)
 			})
 
 			It("updates the ReplacementsCompletedCount field", func() {
-				m.Eventually(nodeRollout, timeout).Should(utils.WithNodeRolloutStatusField("ReplacementsCompletedCount", Equal(len(expectedReplacementsCompleted))))
+				m.Eventually(nodeRollout, timeout).Should(utils.WithField("Status.ReplacementsCompletedCount", Equal(len(expectedReplacementsCompleted))))
 			})
 
 			It("does not cause an error", func() {
@@ -288,12 +288,12 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			It("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(
-					utils.WithNodeRolloutStatusField("Conditions",
+					utils.WithField("Status.Conditions",
 						ContainElement(SatisfyAll(
-							utils.WithNodeRolloutConditionField("Type", Equal(navarchosv1alpha1.ReplacementsCreatedType)),
-							utils.WithNodeRolloutConditionField("Status", Equal(corev1.ConditionFalse)),
-							utils.WithNodeRolloutConditionField("Reason", Equal(result.ReplacementsCreatedReason)),
-							utils.WithNodeRolloutConditionField("Message", Equal(result.ReplacementsCreatedError.Error())),
+							utils.WithField("Type", Equal(navarchosv1alpha1.ReplacementsCreatedType)),
+							utils.WithField("Status", Equal(corev1.ConditionFalse)),
+							utils.WithField("Reason", Equal(result.ReplacementsCreatedReason)),
+							utils.WithField("Message", Equal(result.ReplacementsCreatedError.Error())),
 						)),
 					),
 				)
@@ -392,12 +392,12 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			It("updates the status condition", func() {
 				m.Eventually(nodeRollout, timeout).Should(
-					utils.WithNodeRolloutStatusField("Conditions",
+					utils.WithField("Status.Conditions",
 						ContainElement(SatisfyAll(
-							utils.WithNodeRolloutConditionField("Type", Equal(navarchosv1alpha1.ReplacementsInProgressType)),
-							utils.WithNodeRolloutConditionField("Status", Equal(corev1.ConditionFalse)),
-							utils.WithNodeRolloutConditionField("Reason", Equal(result.ReplacementsInProgressReason)),
-							utils.WithNodeRolloutConditionField("Message", Equal(result.ReplacementsInProgressError.Error())),
+							utils.WithField("Type", Equal(navarchosv1alpha1.ReplacementsInProgressType)),
+							utils.WithField("Status", Equal(corev1.ConditionFalse)),
+							utils.WithField("Reason", Equal(result.ReplacementsInProgressReason)),
+							utils.WithField("Message", Equal(result.ReplacementsInProgressError.Error())),
 						)),
 					),
 				)
