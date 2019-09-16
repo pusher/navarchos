@@ -58,7 +58,7 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("updates the phase in the status", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("Phase", Equal(phase)))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.Phase", Equal(phase)))
 			})
 
 			It("does not cause an error", func() {
@@ -76,11 +76,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("sets the NodePods field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("NodePods", Equal(nodePods)))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.NodePods", Equal(nodePods)))
 			})
 
 			It("sets the NodePodsCount field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("NodePodsCount", Equal(len(nodePods))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.NodePodsCount", Equal(len(nodePods))))
 			})
 
 			It("does not cause an error", func() {
@@ -107,11 +107,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("does not update the NodePods field", func() {
-				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithNodeReplacementStatusField("NodePods", Equal(existingNodePods)))
+				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithField("Status.NodePods", Equal(existingNodePods)))
 			})
 
 			It("does not update the NodePodsCount field", func() {
-				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithNodeReplacementStatusField("NodePodsCount", Equal(len(existingNodePods))))
+				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithField("Status.NodePodsCount", Equal(len(existingNodePods))))
 			})
 
 			It("returns an error", func() {
@@ -129,11 +129,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("sets the EvictedPods field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("EvictedPods", Equal(evictedPods)))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.EvictedPods", Equal(evictedPods)))
 			})
 
 			It("sets the EvictedPodsCount field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("EvictedPodsCount", Equal(len(evictedPods))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.EvictedPodsCount", Equal(len(evictedPods))))
 			})
 
 			It("does not cause an error", func() {
@@ -164,12 +164,12 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 
 			It("joins the new and existing EvictedPods field", func() {
 				m.Eventually(nodeReplacement, timeout).Should(
-					utils.WithNodeReplacementStatusField("EvictedPods", ConsistOf(expectedEvictedPods)),
+					utils.WithField("Status.EvictedPods", ConsistOf(expectedEvictedPods)),
 				)
 			})
 
 			It("updates the EvictedPodsCount field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("EvictedPodsCount", Equal(len(expectedEvictedPods))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.EvictedPodsCount", Equal(len(expectedEvictedPods))))
 			})
 
 			It("does not cause an error", func() {
@@ -192,11 +192,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("sets the IgnoredPods field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("IgnoredPods", Equal(ignoredPods)))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.IgnoredPods", Equal(ignoredPods)))
 			})
 
 			It("sets the IgnoredPodsCount field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("IgnoredPodsCount", Equal(len(ignoredPods))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.IgnoredPodsCount", Equal(len(ignoredPods))))
 			})
 
 			It("does not cause an error", func() {
@@ -231,11 +231,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("does not update the IgnoredPods field", func() {
-				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithNodeReplacementStatusField("IgnoredPods", Equal(existingIgnoredPods)))
+				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithField("Status.IgnoredPods", Equal(existingIgnoredPods)))
 			})
 
 			It("does not update the IgnoredPodsCount field", func() {
-				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithNodeReplacementStatusField("IgnoredPodsCount", Equal(len(existingIgnoredPods))))
+				m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithField("Status.IgnoredPodsCount", Equal(len(existingIgnoredPods))))
 			})
 
 			It("returns an error", func() {
@@ -258,11 +258,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("sets the FailedPods field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPods", Equal(failedPods)))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.FailedPods", Equal(failedPods)))
 			})
 
 			It("sets the FailedPodsCount field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPodsCount", Equal(len(failedPods))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.FailedPodsCount", Equal(len(failedPods))))
 			})
 
 			It("does not cause an error", func() {
@@ -295,11 +295,11 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 			})
 
 			It("updates the FailedPods field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPods", Equal(failedPods)))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.FailedPods", Equal(failedPods)))
 			})
 
 			It("updates the FailedPodsCount field", func() {
-				m.Eventually(nodeReplacement, timeout).Should(utils.WithNodeReplacementStatusField("FailedPodsCount", Equal(len(failedPods))))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.FailedPodsCount", Equal(len(failedPods))))
 			})
 
 			It("does not cause an error", func() {
@@ -414,12 +414,12 @@ var _ = Describe("NodeReplacement Status Suite", func() {
 
 			It("updates the status condition", func() {
 				m.Eventually(nodeReplacement, timeout).Should(
-					utils.WithNodeReplacementStatusField("Conditions",
+					utils.WithField("Status.Conditions",
 						ContainElement(SatisfyAll(
-							utils.WithNodeReplacementConditionField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
-							utils.WithNodeReplacementConditionField("Status", Equal(corev1.ConditionFalse)),
-							utils.WithNodeReplacementConditionField("Reason", Equal(result.NodeCordonReason)),
-							utils.WithNodeReplacementConditionField("Message", Equal(result.NodeCordonError.Error())),
+							utils.WithField("Type", Equal(navarchosv1alpha1.NodeCordonedType)),
+							utils.WithField("Status", Equal(corev1.ConditionFalse)),
+							utils.WithField("Reason", Equal(result.NodeCordonReason)),
+							utils.WithField("Message", Equal(result.NodeCordonError.Error())),
 						)),
 					),
 				)

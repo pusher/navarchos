@@ -149,7 +149,7 @@ var _ = Describe("Handler suite", func() {
 					nr.Spec.NodeNames = []navarchosv1alpha1.NodeName{}
 					return nr
 				}, timeout).Should(Succeed())
-				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeNames", BeEmpty()))
+				Expect(nodeRollout).To(utils.WithField("Spec.NodeNames", BeEmpty()))
 			})
 
 			It("creates a NodeReplacement for example-master-1", func() {
@@ -213,7 +213,7 @@ var _ = Describe("Handler suite", func() {
 					nr.Spec.NodeSelectors = []navarchosv1alpha1.NodeLabelSelector{}
 					return nr
 				}, timeout).Should(Succeed())
-				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
+				Expect(nodeRollout).To(utils.WithField("Spec.NodeSelectors", BeEmpty()))
 			})
 
 			It("creates a NodeReplacement for example-master-1", func() {
@@ -279,8 +279,8 @@ var _ = Describe("Handler suite", func() {
 
 		Context("with NodeNames and NodeSelectors", func() {
 			BeforeEach(func() {
-				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeNames", Not(BeEmpty())))
-				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", Not(BeEmpty())))
+				Expect(nodeRollout).To(utils.WithField("Spec.NodeNames", Not(BeEmpty())))
+				Expect(nodeRollout).To(utils.WithField("Spec.NodeSelectors", Not(BeEmpty())))
 			})
 
 			It("creates a NodeReplacement for example-master-1", func() {
@@ -347,7 +347,7 @@ var _ = Describe("Handler suite", func() {
 					nr.Spec.NodeSelectors = []navarchosv1alpha1.NodeLabelSelector{}
 					return nr
 				}, timeout).Should(Succeed())
-				Expect(nodeRollout).To(utils.WithNodeRolloutSpecField("NodeSelectors", BeEmpty()))
+				Expect(nodeRollout).To(utils.WithField("Spec.NodeSelectors", BeEmpty()))
 
 				By("creating NodeReplacements for the Nodes named in the NodeRollout")
 				nrMaster1 = nodeReplacementFor(masterNode1)
