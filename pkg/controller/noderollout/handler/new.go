@@ -32,14 +32,14 @@ type replacementCreationResult struct {
 // handleNew handles a NodeRollout in the 'New' phase. It creates
 // NodeReplacements from the provided NodeRollout instance and updates the phase
 // to in progress if it does not fail
-func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) *status.Result {
+func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) (*status.Result, error) {
 	result := &status.Result{}
 	nodes := &corev1.NodeList{}
 	err := h.client.List(context.Background(), nodes)
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to list nodes: %v", err)
 		result.ReplacementsCreatedReason = "ErrorListingNodes"
-		return result
+		return result, result.ReplacementsCreatedError
 	}
 
 	nodeReplacementMap := make(map[string]nodeReplacementSpec)
@@ -47,7 +47,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to filter nodes: %v", err)
 		result.ReplacementsCreatedReason = "ErrorFilteringNodes"
-		return result
+		return result, result.ReplacementsCreatedError
 	}
 	nodeReplacementMap = filterNodeNames(nodes, instance.Spec.NodeNames, nodeReplacementMap)
 
@@ -55,7 +55,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 	if err != nil {
 		result.ReplacementsCreatedError = fmt.Errorf("failed to create node replacements: %v", err)
 		result.ReplacementsCreatedReason = "ErrorCreatingNodeReplacements"
-		return result
+		return result, result.ReplacementsCreatedError
 	}
 
 	// retrieve any errors.
@@ -77,13 +77,13 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 		}
 		result.ReplacementsCreatedError = fmt.Errorf(strings.Join(errSlice, ",\n"))
 		result.ReplacementsCreatedReason = "ErrorCreatingNodeReplacements"
-		return result
+		return result, result.ReplacementsCreatedError
 	}
 
 	inProgress := navarchosv1alpha1.RolloutPhaseInProgress
 	result.Phase = &inProgress
 
-	return result
+	return result, nil
 }
 
 // filterNodeSelectors filters the list of all nodes.  If a nodes labels match

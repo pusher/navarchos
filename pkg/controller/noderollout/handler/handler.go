@@ -40,7 +40,7 @@ func NewNodeRolloutHandler(c client.Client, opts *Options) *NodeRolloutHandler {
 
 // Handle performs the business logic of the NodeRollout and returns information
 // in a Result
-func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) *status.Result {
+func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) (*status.Result, error) {
 	switch instance.Status.Phase {
 	case navarchosv1alpha1.RolloutPhaseNew:
 		return h.handleNew(instance)
@@ -53,6 +53,6 @@ func (h *NodeRolloutHandler) Handle(instance *navarchosv1alpha1.NodeRollout) *st
 	}
 }
 
-func (h *NodeRolloutHandler) handleCompleted(instance *navarchosv1alpha1.NodeRollout) *status.Result {
-	return &status.Result{}
+func (h *NodeRolloutHandler) handleCompleted(instance *navarchosv1alpha1.NodeRollout) (*status.Result, error) {
+	return &status.Result{}, nil
 }
