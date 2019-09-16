@@ -22,6 +22,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 	const timeout = time.Second * 5
 	const consistentlyTimeout = time.Second
+	const testStr = "test"
 
 	BeforeEach(func() {
 		var err error
@@ -316,7 +317,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			Context("if only ReplacementsCreatedReason is set", func() {
 				BeforeEach(func() {
-					result.ReplacementsCreatedReason = "test"
+					result.ReplacementsCreatedReason = testStr
 				})
 
 				It("doess not cause an error", func() {
@@ -327,7 +328,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			Context("if both are set", func() {
 				BeforeEach(func() {
 					result.ReplacementsCreatedError = errors.New("error")
-					result.ReplacementsCreatedReason = "test"
+					result.ReplacementsCreatedReason = testStr
 				})
 
 				It("does not cause an error", func() {
@@ -420,7 +421,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 
 			Context("if only ReplacementsInProgressReason is set", func() {
 				BeforeEach(func() {
-					result.ReplacementsInProgressReason = "test"
+					result.ReplacementsInProgressReason = testStr
 				})
 
 				It("does not causes an error", func() {
@@ -431,7 +432,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 			Context("if both are set", func() {
 				BeforeEach(func() {
 					result.ReplacementsInProgressError = errors.New("error")
-					result.ReplacementsInProgressReason = "test"
+					result.ReplacementsInProgressReason = testStr
 				})
 
 				It("does not cause an error", func() {
