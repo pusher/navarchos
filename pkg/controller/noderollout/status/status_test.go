@@ -311,7 +311,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				})
 
 				It("causes an error", func() {
-					Expect(updateErr).ToNot(BeNil())
+					Expect(updateErr).To(MatchError("if ReplacementsCreatedError is set, ReplacementsCreatedReason must also be set"))
 				})
 			})
 
@@ -344,9 +344,9 @@ var _ = Describe("NodeRollout Status Suite", func() {
 		})
 
 		Context("when the ReplacementsInProgressError is not set in the Result", func() {
-			Context("and ReplacementsInProgressReason is set", func() {
+			Context("and ReplacementsInProgressReason is set with replacements are still on going", func() {
 				BeforeEach(func() {
-					result.ReplacementsInProgressReason = "ErrorListingNodes"
+					result.ReplacementsInProgressReason = "StillProgressing"
 				})
 
 				It("adds the status condition with Status True", func() {
@@ -355,7 +355,30 @@ var _ = Describe("NodeRollout Status Suite", func() {
 							ContainElement(SatisfyAll(
 								utils.WithField("Type", Equal(navarchosv1alpha1.ReplacementsInProgressType)),
 								utils.WithField("Status", Equal(corev1.ConditionTrue)),
-								utils.WithField("Reason", Equal(navarchosv1alpha1.NodeRolloutConditionReason("ErrorListingNodes"))),
+								utils.WithField("Reason", Equal(navarchosv1alpha1.NodeRolloutConditionReason("StillProgressing"))),
+								utils.WithField("Message", BeEmpty()),
+							)),
+						),
+					)
+				})
+
+				It("does not cause an error", func() {
+					Expect(updateErr).To(BeNil())
+				})
+			})
+
+			Context("and ReplacementsInProgressReason is set with replacements completed", func() {
+				BeforeEach(func() {
+					result.ReplacementsInProgressReason = "ReplacementsCompleted"
+				})
+
+				It("adds the status condition with Status False", func() {
+					m.Eventually(nodeRollout, timeout).Should(
+						utils.WithField("Status.Conditions",
+							ContainElement(SatisfyAll(
+								utils.WithField("Type", Equal(navarchosv1alpha1.ReplacementsInProgressType)),
+								utils.WithField("Status", Equal(corev1.ConditionFalse)),
+								utils.WithField("Reason", Equal(navarchosv1alpha1.NodeRolloutConditionReason("ReplacementsCompleted"))),
 								utils.WithField("Message", BeEmpty()),
 							)),
 						),
@@ -415,7 +438,7 @@ var _ = Describe("NodeRollout Status Suite", func() {
 				})
 
 				It("causes an error", func() {
-					Expect(updateErr).ToNot(BeNil())
+					Expect(updateErr).To(MatchError("if ReplacementsInProgressError is set, ReplacementsInProgressReason must also be set"))
 				})
 			})
 
