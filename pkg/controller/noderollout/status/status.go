@@ -32,11 +32,11 @@ func UpdateStatus(c client.Client, instance *navarchosv1alpha1.NodeRollout, resu
 		return err
 	}
 
-	err = setCondition(&status, navarchosv1alpha1.ReplacementsCreatedType, result.ReplacementsCreatedError, result.ReplacementsCreatedReason)
+	err = setCreatedCondition(&status, result)
 	if err != nil {
 		return err
 	}
-	err = setCondition(&status, navarchosv1alpha1.ReplacementsInProgressType, result.ReplacementsInProgressError, result.ReplacementsInProgressReason)
+	err = setInProgressCondition(&status, result)
 	if err != nil {
 		return err
 	}
@@ -107,8 +107,8 @@ func setCompletionTimestamp(status *navarchosv1alpha1.NodeRolloutStatus, result 
 }
 
 // newNodeRolloutCondition creates a new condition NodeRolloutCondition
-func newNodeRolloutCondition(condType navarchosv1alpha1.NodeRolloutConditionType, status corev1.ConditionStatus, reason navarchosv1alpha1.NodeRolloutConditionReason, message string) *navarchosv1alpha1.NodeRolloutCondition {
-	return &navarchosv1alpha1.NodeRolloutCondition{
+func newNodeRolloutCondition(condType navarchosv1alpha1.NodeRolloutConditionType, status corev1.ConditionStatus, reason navarchosv1alpha1.NodeRolloutConditionReason, message string) navarchosv1alpha1.NodeRolloutCondition {
+	return navarchosv1alpha1.NodeRolloutCondition{
 		Type:               condType,
 		Status:             status,
 		LastUpdateTime:     metav1.Now(),
@@ -156,31 +156,43 @@ func filterOutCondition(conditions []navarchosv1alpha1.NodeRolloutCondition, con
 	return newConditions
 }
 
-func setCondition(status *navarchosv1alpha1.NodeRolloutStatus, condType navarchosv1alpha1.NodeRolloutConditionType, condErr error, reason navarchosv1alpha1.NodeRolloutConditionReason) error {
-	if condErr != nil && reason == "" {
-		return fmt.Errorf("if ReplacementsCompletedError is set,  ReplacementsCompletedReason must also be set")
-	}
-	if condErr != nil {
-		// Error for condition , set condition appropriately
-		cond := newNodeRolloutCondition(
-			condType,
-			corev1.ConditionFalse,
-			reason,
-			condErr.Error(),
-		)
-		setNodeRolloutCondition(status, *cond)
-		return nil
+func setInProgressCondition(status *navarchosv1alpha1.NodeRolloutStatus, result *Result) error {
+	if result.ReplacementsInProgressError != nil && result.ReplacementsInProgressReason == "" {
+		return fmt.Errorf("if ReplacementsInProgressError is set, ReplacementsInProgressReason must also be set")
 	}
 
-	if reason != "" {
-		// No error for condition, set condition appropriately
-		cond := newNodeRolloutCondition(
-			condType,
-			corev1.ConditionTrue,
-			reason,
-			"",
-		)
-		setNodeRolloutCondition(status, *cond)
+	if result.ReplacementsInProgressReason != "" {
+		condition := newNodeRolloutCondition(navarchosv1alpha1.ReplacementsInProgressType, corev1.ConditionTrue, result.ReplacementsInProgressReason, "")
+
+		if result.ReplacementsInProgressError != nil {
+			condition.Status = corev1.ConditionFalse
+			condition.Message = result.ReplacementsInProgressError.Error()
+		}
+
+		if result.ReplacementsInProgressReason == "ReplacementsCompleted" {
+			condition.Status = corev1.ConditionFalse
+		}
+
+		setNodeRolloutCondition(status, condition)
+	}
+
+	return nil
+}
+
+func setCreatedCondition(status *navarchosv1alpha1.NodeRolloutStatus, result *Result) error {
+	if result.ReplacementsCreatedError != nil && result.ReplacementsCreatedReason == "" {
+		return fmt.Errorf("if ReplacementsCreatedError is set, ReplacementsCreatedReason must also be set")
+	}
+
+	if result.ReplacementsCreatedReason != "" {
+		condition := newNodeRolloutCondition(navarchosv1alpha1.ReplacementsCreatedType, corev1.ConditionTrue, result.ReplacementsCreatedReason, "")
+
+		if result.ReplacementsCreatedError != nil {
+			condition.Status = corev1.ConditionFalse
+			condition.Message = result.ReplacementsCreatedError.Error()
+		}
+
+		setNodeRolloutCondition(status, condition)
 	}
 
 	return nil
