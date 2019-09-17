@@ -19,6 +19,7 @@ package nodereplacement
 import (
 	"context"
 	"fmt"
+	"log"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/handler"
@@ -97,6 +98,12 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 
 	result, err := r.handler.Handle(instance)
 	if err != nil {
+		// Ensure we attempt to update the status even when the handler fails
+		statusErr := status.UpdateStatus(r.Client, instance, result)
+		if statusErr != nil {
+			log.Printf("error updating status: %v", statusErr)
+		}
+
 		return reconcile.Result{}, fmt.Errorf("error handling replacement %s: %v", instance.GetName(), err)
 	}
 	err = status.UpdateStatus(r.Client, instance, result)
