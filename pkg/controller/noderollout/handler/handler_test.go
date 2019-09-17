@@ -197,7 +197,7 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCreatedError).To(BeNil())
-				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedReason).To(Equal(navarchosv1alpha1.NodeRolloutConditionReason("CreatedNodeReplacements")))
 			})
 
 			It("should not return an error", func() {
@@ -269,7 +269,7 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCreatedError).To(BeNil())
-				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedReason).To(Equal(navarchosv1alpha1.NodeRolloutConditionReason("CreatedNodeReplacements")))
 			})
 
 			It("should not return an error", func() {
@@ -328,7 +328,7 @@ var _ = Describe("Handler suite", func() {
 
 			It("does not set any error", func() {
 				Expect(result.ReplacementsCreatedError).To(BeNil())
-				Expect(result.ReplacementsCreatedReason).To(BeEmpty())
+				Expect(result.ReplacementsCreatedReason).To(Equal(navarchosv1alpha1.NodeRolloutConditionReason("CreatedNodeReplacements")))
 			})
 
 			It("should not return an error", func() {
@@ -499,6 +499,10 @@ var _ = Describe("Handler suite", func() {
 			It("sets the Result Phase field to Completed", func() {
 				completedPhase := navarchosv1alpha1.RolloutPhaseCompleted
 				Expect(result.Phase).To(Equal(&completedPhase))
+			})
+
+			It("sets the ReplacmentsInProgressReason", func() {
+				Expect(result.ReplacementsInProgressReason).To(Equal(navarchosv1alpha1.NodeRolloutConditionReason("ReplacementsCompleted")))
 			})
 		})
 	})
