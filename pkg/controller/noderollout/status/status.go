@@ -101,9 +101,7 @@ func setCompletionTimestamp(status *navarchosv1alpha1.NodeRolloutStatus, result 
 	if status.CompletionTimestamp == nil && result.CompletionTimestamp != nil {
 		status.CompletionTimestamp = result.CompletionTimestamp
 	}
-
 	return nil
-
 }
 
 // newNodeRolloutCondition creates a new condition NodeRolloutCondition

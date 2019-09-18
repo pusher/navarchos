@@ -543,7 +543,7 @@ var _ = Describe("Handler suite", func() {
 				nodeRollout.Status.CompletionTimestamp = &time
 			})
 
-			PIt("deletes the NodeRollout", func() {
+			It("deletes the NodeRollout", func() {
 				m.Get(nodeRollout, timeout).ShouldNot(Succeed())
 			})
 		})
