@@ -40,7 +40,38 @@ func NewNodeReplacementHandler(c client.Client, opts *Options) *NodeReplacementH
 }
 
 // Handle performs the business logic of a NodeReplacement and returns
-// information in a Result
+// information in a Result. The use of fallthrough is to ensure that one
+// instance of a NodeReplacement can be handled in full without interruption
 func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
+	var result *status.Result
+
+	switch instance.Status.Phase {
+	default:
+		instance.Status.Phase = navarchosv1alpha1.ReplacementPhaseNew
+		fallthrough // this is important, we want one instance to be handled to completion without a requeue if possible
+	case navarchosv1alpha1.ReplacementPhaseNew:
+		result, err := h.handleNew(instance)
+		if err != nil {
+			return result, err
+		}
+		if result.Requeue {
+			return result, nil
+		}
+		fallthrough // this is important, we want one instance to be handled to completion without a requeue if possible
+	case navarchosv1alpha1.ReplacementPhaseInProgress:
+		result, err := h.handleInProgress(instance, result)
+		if err != nil {
+			return result, err
+		}
+	}
+
+	return result, nil
+}
+
+func (h *NodeReplacementHandler) handleNew(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
+	return &status.Result{}, fmt.Errorf("method not implemented")
+}
+
+func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement, result *status.Result) (*status.Result, error) {
 	return &status.Result{}, fmt.Errorf("method not implemented")
 }
