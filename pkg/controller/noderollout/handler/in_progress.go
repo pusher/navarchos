@@ -30,6 +30,7 @@ func (h *NodeRolloutHandler) handleInProgress(instance *navarchosv1alpha1.NodeRo
 	result.ReplacementsCompleted = completed
 
 	if len(completed) == len(nodeReplacementList.Items) {
+		result.ReplacementsInProgressReason = "ReplacementsCompleted"
 		completedPhase := navarchosv1alpha1.RolloutPhaseCompleted
 		result.Phase = &completedPhase
 

@@ -80,6 +80,7 @@ func (h *NodeRolloutHandler) handleNew(instance *navarchosv1alpha1.NodeRollout) 
 		return result, result.ReplacementsCreatedError
 	}
 
+	result.ReplacementsCreatedReason = "CreatedNodeReplacements"
 	inProgress := navarchosv1alpha1.RolloutPhaseInProgress
 	result.Phase = &inProgress
 
