@@ -25,6 +25,7 @@ import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
 	"github.com/pusher/navarchos/test/utils"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,6 +127,7 @@ var _ = Describe("Handler suite", func() {
 			&navarchosv1alpha1.NodeReplacementList{},
 			&corev1.NodeList{},
 			&corev1.PodList{},
+			&appsv1.DaemonSetList{},
 			&policyv1beta1.PodDisruptionBudgetList{},
 		)
 
@@ -137,6 +139,14 @@ var _ = Describe("Handler suite", func() {
 	})
 
 	Context("when the Handler is called on a New NodeReplacement", func() {
+		BeforeEach(func() {
+			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+				nr.Spec.NodeUID = workerNode1.GetUID()
+				nr.Spec.NodeName = workerNode1.GetName()
+				return nr
+			}, timeout).Should(Succeed())
+		})
 		JustBeforeEach(func() {
 			result, handleErr = h.Handle(nodeReplacement)
 		})
@@ -157,7 +167,7 @@ var _ = Describe("Handler suite", func() {
 				Expect(*highPriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
-			PIt("requeues the NodeReplacement", func() {
+			It("requeues the NodeReplacement", func() {
 				Expect(result.Requeue).To(BeTrue())
 				Expect(result.RequeueReason).To(Equal("NodeReplacement \"high-priority\" has a higher priority"))
 			})
@@ -166,7 +176,7 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.NodePods).To(BeEmpty())
 			})
 
-			PIt("should not return an error", func() {
+			It("should not return an error", func() {
 				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
@@ -192,7 +202,7 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.RequeueReason).To(BeEmpty())
 			})
 
-			PIt("sets the Result NodePods field to contain a list of pods on the node", func() {
+			It("sets the Result NodePods field to contain a list of pods on the node", func() {
 				Expect(result.NodePods).To(ConsistOf(
 					"pod-1",
 					"pod-2",
@@ -200,11 +210,12 @@ var _ = Describe("Handler suite", func() {
 				))
 			})
 
-			PIt("sets the Result Phase field to InProgress", func() {
-				Expect(result.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseInProgress))
+			It("sets the Result Phase field to InProgress", func() {
+				inProgress := navarchosv1alpha1.ReplacementPhaseInProgress
+				Expect(result.Phase).To(Equal(&inProgress))
 			})
 
-			PIt("should not return an error", func() {
+			It("should not return an error", func() {
 				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
@@ -218,7 +229,7 @@ var _ = Describe("Handler suite", func() {
 				m.Create(highPriorityNR).Should(Succeed())
 			})
 
-			PIt("requeues the NodeReplacement", func() {
+			It("requeues the NodeReplacement", func() {
 				Expect(result.Requeue).To(BeTrue())
 				Expect(result.RequeueReason).To(Equal("NodeReplacement \"in-progress\" is already in-progress"))
 			})
@@ -227,22 +238,22 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.NodePods).To(BeEmpty())
 			})
 
-			PIt("should not return an error", func() {
+			It("should not return an error", func() {
 				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
-		PIt("should cordon the node", func() {
+		It("should cordon the node", func() {
 			m.Eventually(workerNode1, timeout).Should(utils.WithField("Spec.Unschedulable", BeTrue()))
 			m.Eventually(workerNode1, timeout).Should(utils.WithField("Spec.Taints",
 				ContainElement(SatisfyAll(
-					utils.WithField("Effect", Equal("NoSchedule")),
+					utils.WithField("Effect", Equal(corev1.TaintEffect("NoSchedule"))),
 					utils.WithField("Key", Equal("node.kubernetes.io/unschedulable")),
 				)),
 			))
 		})
 
-		PIt("should list all Pods in the Result NodePods field", func() {
+		It("should list all Pods in the Result NodePods field", func() {
 			Expect(result.NodePods).To(ConsistOf(
 				"pod-1",
 				"pod-2",
@@ -260,7 +271,7 @@ var _ = Describe("Handler suite", func() {
 			}
 		})
 
-		PIt("should not return an error", func() {
+		It("should not return an error", func() {
 			Expect(handleErr).ToNot(HaveOccurred())
 		})
 
@@ -275,19 +286,19 @@ var _ = Describe("Handler suite", func() {
 				}, timeout).Should(Succeed())
 			})
 
-			PIt("should ignore the DaemonSet managed Pod", func() {
+			It("should ignore the DaemonSet managed Pod", func() {
 				Expect(result.IgnoredPods).To(ConsistOf(
 					navarchosv1alpha1.PodReason{Name: "pod-1", Reason: "pod owned by a DaemonSet"},
 				))
 			})
 
-			PIt("should not return an error", func() {
+			It("should not return an error", func() {
 				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 	})
 
-	Context("when the Handler is called on an InProgress NodeReplacement", func() {
+	PContext("when the Handler is called on an InProgress NodeReplacement", func() {
 		BeforeEach(func() {
 			// Set the NodeReplacement as we expect it to be at this point
 			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {

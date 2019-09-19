@@ -145,6 +145,11 @@ var ExampleNodeReplacement = &navarchosv1alpha1.NodeReplacement{
 	Status: navarchosv1alpha1.NodeReplacementStatus{
 		Phase: navarchosv1alpha1.ReplacementPhaseNew,
 	},
+	Spec: navarchosv1alpha1.NodeReplacementSpec{
+		ReplacementSpec: navarchosv1alpha1.ReplacementSpec{
+			Priority: intPtr(0),
+		},
+	},
 }
 
 // ExamplePod is an example of a Pod for use in test

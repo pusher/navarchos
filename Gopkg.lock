@@ -816,6 +816,18 @@
   revision = "db7b694dc208eead64d38030265f702db593fcf2"
 
 [[projects]]
+  digest = "1:2fd38ba4693970d9cf8ebbac0e7bc4d5e54b9d23680d0f2dfb508b04b6f02a13"
+  name = "k8s.io/kubernetes"
+  packages = [
+    "pkg/apis/core",
+    "pkg/apis/core/helper",
+    "pkg/util/taints",
+  ]
+  pruneopts = "T"
+  revision = "a87e9a978f65a8303aa9467537aa59c18122cbf9"
+  version = "v1.14.4"
+
+[[projects]]
   branch = "master"
   digest = "1:75ea823fa8126ea20f2c34040f3f34876a1e52427f5831045da3605d97610b7e"
   name = "k8s.io/utils"
@@ -928,6 +940,7 @@
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/meta",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/types",
@@ -937,6 +950,7 @@
     "k8s.io/client-go/rest",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/kubernetes/pkg/util/taints",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",
