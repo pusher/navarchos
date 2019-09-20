@@ -175,6 +175,10 @@ var ExampleDaemonSet = &appsv1.DaemonSet{
 		Namespace: "default",
 		Labels:    exampleApp,
 	},
+	TypeMeta: metav1.TypeMeta{
+		Kind:       "DaemonSet",
+		APIVersion: "appsv1",
+	},
 	Spec: appsv1.DaemonSetSpec{
 		Selector: &metav1.LabelSelector{
 			MatchLabels: exampleApp,
