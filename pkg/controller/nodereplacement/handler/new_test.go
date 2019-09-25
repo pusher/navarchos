@@ -68,7 +68,7 @@ var _ = Describe("new node replacement handler", func() {
 			EvictionGracePeriod: &grace,
 		}
 
-		// Create a node to act as owners for the NodeReplacements created
+		// Create nodes to act as owners for the NodeReplacements created
 		workerNode1 = utils.ExampleNodeWorker1.DeepCopy()
 		workerNode2 = utils.ExampleNodeWorker2.DeepCopy()
 		m.Create(workerNode1).Should(Succeed())
@@ -91,6 +91,8 @@ var _ = Describe("new node replacement handler", func() {
 		nodeReplacement = utils.ExampleNodeReplacement.DeepCopy()
 		nodeReplacement.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode1)})
 		nodeReplacement.Spec.ReplacementSpec.Priority = intPtr(0)
+		nodeReplacement.Spec.NodeUID = workerNode1.GetUID()
+		nodeReplacement.Spec.NodeName = workerNode1.GetName()
 		m.Create(nodeReplacement).Should(Succeed())
 	})
 
@@ -190,58 +192,29 @@ var _ = Describe("new node replacement handler", func() {
 			node, exists, existsErr = h.getNode(nodeReplacement)
 		})
 
-		Context("when there is an error thrown", func() {
-			Context("and the reason for the error is 'NotFound'", func() {
-				BeforeEach(func() {
-					m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
-						nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-						nr.Spec.NodeName = "does-not-exist"
-						return nr
-					}, timeout).Should(Succeed())
-				})
-
-				It("sets exists to false", func() {
-					Expect(exists).To(BeFalse())
-				})
-
-				It("does not set an error", func() {
-					Expect(existsErr).ToNot(HaveOccurred())
-				})
-
-				It("does not return a node", func() {
-					Expect(node).To(BeNil())
-				})
-			})
-
-			PContext("there is another reason for the error", func() {
-				BeforeEach(func() {
-					// I need to find a way to do this?
-				})
-
-				It("sets exists to false", func() {
-					Expect(exists).To(BeFalse())
-				})
-
-				It("sets an error", func() {
-					Expect(existsErr).To(HaveOccurred())
-				})
-
-				It("does not return a node", func() {
-					Expect(node).To(BeNil())
-				})
-			})
-		})
-
-		Context("when the node exists", func() {
+		Context("when the node does not exist", func() {
 			BeforeEach(func() {
 				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-					nr.Spec.NodeUID = workerNode1.GetUID()
-					nr.Spec.NodeName = workerNode1.GetName()
+					nr.Spec.NodeName = "does-not-exist"
 					return nr
 				}, timeout).Should(Succeed())
 			})
 
+			It("sets exists to false", func() {
+				Expect(exists).To(BeFalse())
+			})
+
+			It("does not set an error", func() {
+				Expect(existsErr).ToNot(HaveOccurred())
+			})
+
+			It("does not return a node", func() {
+				Expect(node).To(BeNil())
+			})
+		})
+
+		Context("when the node exists", func() {
 			It("sets exists to true", func() {
 				Expect(exists).To(BeTrue())
 			})
@@ -259,13 +232,13 @@ var _ = Describe("new node replacement handler", func() {
 
 	Context("cordonNode", func() {
 		var err error
-
+		JustBeforeEach(func() {
+			err = h.cordonNode(workerNode1)
+		})
 		Context("when called on an uncordoned node", func() {
-			JustBeforeEach(func() {
-				err = h.cordonNode(workerNode2)
-			})
+
 			It("should cordon the node", func() {
-				m.Eventually(workerNode2, timeout).Should(SatisfyAll(
+				m.Eventually(workerNode1, timeout).Should(SatisfyAll(
 					utils.WithField("Spec.Unschedulable", BeTrue()),
 					utils.WithField("Spec.Taints",
 						ContainElement(SatisfyAll(
@@ -314,41 +287,61 @@ var _ = Describe("new node replacement handler", func() {
 		})
 	})
 
-	Context("processPods", func() {
+	Context("getPodsToEvict", func() {
 		var nodePods []string
 		var ignoredPods []navarchosv1alpha1.PodReason
-		var daemonset *appsv1.DaemonSet
-
 		var err error
-		BeforeEach(func() {
-			daemonset = utils.ExampleDaemonSet.DeepCopy()
-			m.Create(daemonset).Should(Succeed())
-			m.Update(pod2, func(obj utils.Object) utils.Object {
-				pod, _ := obj.(*corev1.Pod)
-				pod.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForDaemonSet(daemonset)})
-				return pod
-			}, timeout).Should(Succeed())
-		})
 
 		JustBeforeEach(func() {
-			nodePods, ignoredPods, err = h.processPods(workerNode1)
+			nodePods, ignoredPods, err = h.getPodsToEvict(workerNode1)
 		})
 
-		It("sets NodePods", func() {
-			Expect(nodePods).To(ConsistOf(
-				"pod-1",
-				"pod-2",
-				"pod-3",
-			))
+		Context("when a pod is owned by a daemonset", func() {
+			var daemonset *appsv1.DaemonSet
+			BeforeEach(func() {
+				daemonset = utils.ExampleDaemonSet.DeepCopy()
+				m.Create(daemonset).Should(Succeed())
+				m.Update(pod2, func(obj utils.Object) utils.Object {
+					pod, _ := obj.(*corev1.Pod)
+					pod.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForDaemonSet(daemonset)})
+					return pod
+				}, timeout).Should(Succeed())
+			})
+
+			It("sets NodePods", func() {
+				Expect(nodePods).To(ConsistOf(
+					"pod-1",
+					"pod-2",
+					"pod-3",
+				))
+			})
+
+			It("sets IgnoredPods", func() {
+				Expect(ignoredPods).To(ConsistOf(
+					navarchosv1alpha1.PodReason{Name: "pod-2", Reason: "pod owned by a DaemonSet"}))
+			})
+
+			It("should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 
-		It("sets IgnoredPods", func() {
-			Expect(ignoredPods).To(ConsistOf(
-				navarchosv1alpha1.PodReason{Name: "pod-2", Reason: "pod owned by a DaemonSet"}))
-		})
+		Context("when no pod is owned by a daemonset", func() {
+			It("sets NodePods", func() {
+				Expect(nodePods).To(ConsistOf(
+					"pod-1",
+					"pod-2",
+					"pod-3",
+				))
+			})
 
-		It("should not return an error", func() {
-			Expect(err).ToNot(HaveOccurred())
+			It("sets IgnoredPods", func() {
+				Expect(ignoredPods).To(BeEmpty())
+			})
+
+			It("should not return an error", func() {
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 	})
 })

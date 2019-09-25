@@ -42,7 +42,7 @@ func (h *NodeReplacementHandler) handleNew(instance *navarchosv1alpha1.NodeRepla
 	}
 
 	result := &status.Result{}
-	result.NodePods, result.IgnoredPods, err = h.processPods(node)
+	result.NodePods, result.IgnoredPods, err = h.getPodsToEvict(node)
 	if err != nil {
 		return result, fmt.Errorf("error listing pods on node %s: %v", node.GetName(), err)
 	}
@@ -118,10 +118,10 @@ func addTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
 	return newNode, true
 }
 
-// processPods processes the pods present on a node. It returns a []string
+// getPodsToEvict lists the pods present on a node. It returns a []string
 // consisting of all pods on the node and a []PodReason consisitng of all pods
-// that are ignored
-func (h *NodeReplacementHandler) processPods(node *corev1.Node) ([]string, []navarchosv1alpha1.PodReason, error) {
+// that are to be ignored
+func (h *NodeReplacementHandler) getPodsToEvict(node *corev1.Node) ([]string, []navarchosv1alpha1.PodReason, error) {
 	podList := &corev1.PodList{}
 	err := h.client.List(context.Background(), podList, client.MatchingField("spec.nodeName", node.GetName()))
 	if err != nil {
@@ -131,14 +131,14 @@ func (h *NodeReplacementHandler) processPods(node *corev1.Node) ([]string, []nav
 	nodePods := []string{}
 	ignoredPods := []navarchosv1alpha1.PodReason{}
 	for _, pod := range podList.Items {
-		ownerRefs := pod.GetOwnerReferences()
+		nodePods = append(nodePods, pod.GetName())
 
+		ownerRefs := pod.GetOwnerReferences()
 		for _, ref := range ownerRefs {
 			if ref.Kind == "DaemonSet" {
 				ignoredPods = append(ignoredPods, navarchosv1alpha1.PodReason{Name: pod.GetName(), Reason: "pod owned by a DaemonSet"})
 			}
 		}
-		nodePods = append(nodePods, pod.GetName())
 	}
 
 	return nodePods, ignoredPods, nil
@@ -160,7 +160,7 @@ func (h *NodeReplacementHandler) getNode(instance *navarchosv1alpha1.NodeReplace
 		return nil, false, err
 	}
 
-	// if  the node UID has changed, it has already been replaced
+	// if the node UID has changed, it has already been replaced
 	if node.GetUID() != instance.Spec.NodeUID {
 		return nil, false, nil
 	}
