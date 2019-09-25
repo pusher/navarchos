@@ -22,8 +22,6 @@ var _ = Describe("new node replacement handler", func() {
 	var opts *Options
 
 	var nodeReplacement *navarchosv1alpha1.NodeReplacement
-	var highPriorityNR *navarchosv1alpha1.NodeReplacement
-	var inProgressNR *navarchosv1alpha1.NodeReplacement
 	var mgrStopped *sync.WaitGroup
 	var stopMgr chan struct{}
 
@@ -92,19 +90,8 @@ var _ = Describe("new node replacement handler", func() {
 
 		nodeReplacement = utils.ExampleNodeReplacement.DeepCopy()
 		nodeReplacement.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode1)})
+		nodeReplacement.Spec.ReplacementSpec.Priority = intPtr(0)
 		m.Create(nodeReplacement).Should(Succeed())
-
-		highPriorityNR = utils.ExampleNodeReplacement.DeepCopy()
-		inProgressNR = utils.ExampleNodeReplacement.DeepCopy()
-
-		highPriorityNR.Spec.ReplacementSpec.Priority = intPtr(10)
-		highPriorityNR.SetName("high-priority")
-
-		inProgressNR.Status.Phase = navarchosv1alpha1.ReplacementPhaseInProgress
-		inProgressNR.SetName("in-progress")
-
-		m.Create(highPriorityNR).Should(Succeed())
-		m.Create(inProgressNR).Should(Succeed())
 	})
 
 	AfterEach(func() {
@@ -132,27 +119,27 @@ var _ = Describe("new node replacement handler", func() {
 		h = NewNodeReplacementHandler(m.Client, opts)
 	})
 
-	Context("shouldProcess", func() {
+	Context("shouldRequeueReplacement", func() {
 		var proceed bool
 		var reason string
-		var replacements *navarchosv1alpha1.NodeReplacementList
 
 		JustBeforeEach(func() {
-			proceed, reason = shouldProcess(nodeReplacement, replacements)
+			proceed, reason = h.shouldRequeueReplacement(nodeReplacement)
 		})
 		Context("if a another NodeReplacement is higher priority", func() {
 			BeforeEach(func() {
+				highPriorityNR := utils.ExampleNodeReplacement.DeepCopy()
+				highPriorityNR.SetName("high-priority")
+				highPriorityNR.Spec.ReplacementSpec.Priority = intPtr(10)
+				highPriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
+				m.Create(highPriorityNR).Should(Succeed())
 				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
 					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
 					nr.Spec.ReplacementSpec.Priority = intPtr(0)
 					return nr
 				}, timeout).Should(Succeed())
-
-				replacements = &navarchosv1alpha1.NodeReplacementList{
-					Items: []navarchosv1alpha1.NodeReplacement{
-						*nodeReplacement, *highPriorityNR,
-					},
-				}
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Spec.ReplacementSpec.Priority", Equal(intPtr(0))))
+				Expect(*highPriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
 			It("sets proceed to false", func() {
@@ -166,11 +153,11 @@ var _ = Describe("new node replacement handler", func() {
 
 		Context("if a another NodeReplacement is in Phase InProgress", func() {
 			BeforeEach(func() {
-				replacements = &navarchosv1alpha1.NodeReplacementList{
-					Items: []navarchosv1alpha1.NodeReplacement{
-						*nodeReplacement, *inProgressNR,
-					},
-				}
+				inProgressNR := utils.ExampleNodeReplacement.DeepCopy()
+				inProgressNR.SetName("in-progress")
+				inProgressNR.Status.Phase = navarchosv1alpha1.ReplacementPhaseInProgress
+				inProgressNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
+				m.Create(inProgressNR).Should(Succeed())
 			})
 
 			It("sets proceed to false", func() {
@@ -183,13 +170,6 @@ var _ = Describe("new node replacement handler", func() {
 		})
 
 		Context("if the NodeReplacement should proceed", func() {
-			BeforeEach(func() {
-				replacements = &navarchosv1alpha1.NodeReplacementList{
-					Items: []navarchosv1alpha1.NodeReplacement{
-						*nodeReplacement,
-					},
-				}
-			})
 
 			It("sets proceed to true", func() {
 				Expect(proceed).To(BeTrue())

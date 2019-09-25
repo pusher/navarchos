@@ -110,6 +110,8 @@ var _ = Describe("Handler suite", func() {
 
 		nodeReplacement = utils.ExampleNodeReplacement.DeepCopy()
 		nodeReplacement.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode1)})
+		nodeReplacement.Spec.NodeUID = workerNode1.GetUID()
+		nodeReplacement.Spec.NodeName = workerNode1.GetName()
 		m.Create(nodeReplacement).Should(Succeed())
 	})
 
@@ -139,14 +141,6 @@ var _ = Describe("Handler suite", func() {
 	})
 
 	Context("when the Handler is called on a New NodeReplacement", func() {
-		BeforeEach(func() {
-			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
-				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
-				nr.Spec.NodeUID = workerNode1.GetUID()
-				nr.Spec.NodeName = workerNode1.GetName()
-				return nr
-			}, timeout).Should(Succeed())
-		})
 		JustBeforeEach(func() {
 			result, handleErr = h.Handle(nodeReplacement)
 		})
