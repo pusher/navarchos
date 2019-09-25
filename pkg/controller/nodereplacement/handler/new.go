@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/util/taints"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -82,17 +81,42 @@ func shouldProcess(instance *navarchosv1alpha1.NodeReplacement, replacements *na
 // cordonNode cordons a node
 func (h *NodeReplacementHandler) cordonNode(node *corev1.Node) error {
 	node.Spec.Unschedulable = true
-	node, _, err := taints.AddOrUpdateTaint(node, &corev1.Taint{
+	node, updated := addTaint(node, &corev1.Taint{
 		Key:    "node.kubernetes.io/unschedulable",
 		Effect: corev1.TaintEffect("NoSchedule"),
 	})
-	if err != nil {
-		return err
+	if !updated {
+		return nil
 	}
 
-	err = h.client.Update(context.Background(), node)
+	err := h.client.Update(context.Background(), node)
 
 	return err
+}
+
+// addTaint tries to add a taint to annotations list. Returns a new copy of the
+// updated Node and true if something was updated false otherwise. When
+// determining if the taint already exists only the key:effect are checked, the
+// value and time added are disregarded
+func addTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
+	newNode := node.DeepCopy()
+	nodeTaints := newNode.Spec.Taints
+
+	var newTaints []corev1.Taint
+	for i := range nodeTaints {
+		if taint.MatchTaint(&nodeTaints[i]) {
+			// break early, taint already exists
+			return newNode, false
+		}
+		// perserve the previous taints§
+		newTaints = append(newTaints, nodeTaints[i])
+
+	}
+
+	newTaints = append(newTaints, *taint)
+	newNode.Spec.Taints = newTaints
+
+	return newNode, true
 }
 
 // processPods processes the pods present on a node. It returns a []string

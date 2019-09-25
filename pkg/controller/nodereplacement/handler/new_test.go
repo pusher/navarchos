@@ -12,7 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/util/taints"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -286,13 +285,15 @@ var _ = Describe("new node replacement handler", func() {
 				err = h.cordonNode(workerNode2)
 			})
 			It("should cordon the node", func() {
-				m.Eventually(workerNode2, timeout).Should(utils.WithField("Spec.Unschedulable", BeTrue()))
-				m.Eventually(workerNode2, timeout).Should(utils.WithField("Spec.Taints",
-					ContainElement(SatisfyAll(
-						utils.WithField("Effect", Equal(corev1.TaintEffect("NoSchedule"))),
-						utils.WithField("Key", Equal("node.kubernetes.io/unschedulable")),
-					)),
-				))
+				m.Eventually(workerNode2, timeout).Should(SatisfyAll(
+					utils.WithField("Spec.Unschedulable", BeTrue()),
+					utils.WithField("Spec.Taints",
+						ContainElement(SatisfyAll(
+							utils.WithField("Effect", Equal(corev1.TaintEffect("NoSchedule"))),
+							utils.WithField("Key", Equal("node.kubernetes.io/unschedulable")),
+							// utils.WithField("TimeAdded", Not(BeNil())),
+						)),
+					)))
 			})
 
 			It("should not return an error", func() {
@@ -301,28 +302,29 @@ var _ = Describe("new node replacement handler", func() {
 		})
 
 		Context("when called on a cordoned node", func() {
-			var cordonedNode *corev1.Node
+			var taint corev1.Taint
+
 			BeforeEach(func() {
-				cordonedNode = utils.ExampleNodeMaster1.DeepCopy()
-				m.Create(cordonedNode).Should(Succeed())
-				m.Update(cordonedNode, func(obj utils.Object) utils.Object {
+				now := metav1.Now()
+				taint = corev1.Taint{
+					Key:       "node.kubernetes.io/unschedulable",
+					Effect:    corev1.TaintEffect("NoSchedule"),
+					TimeAdded: &now,
+				}
+
+				m.Update(workerNode1, func(obj utils.Object) utils.Object {
 					node, _ := obj.(*corev1.Node)
 					node.Spec.Unschedulable = true
-					node, _, _ = taints.AddOrUpdateTaint(node, &corev1.Taint{
-						Key:    "node.kubernetes.io/unschedulable",
-						Effect: corev1.TaintEffect("NoSchedule"),
-					})
+
+					node.Spec.Taints = []corev1.Taint{taint}
 					return node
 				}, timeout).Should(Succeed())
 			})
 
-			It("should cordon the node", func() {
-				m.Consistently(cordonedNode, timeout).Should(utils.WithField("Spec.Unschedulable", BeTrue()))
-				m.Consistently(cordonedNode, timeout).Should(utils.WithField("Spec.Taints",
-					ContainElement(SatisfyAll(
-						utils.WithField("Effect", Equal(corev1.TaintEffect("NoSchedule"))),
-						utils.WithField("Key", Equal("node.kubernetes.io/unschedulable")),
-					)),
+			It("should leave the node cordoned", func() {
+				m.Consistently(workerNode1, timeout).Should(SatisfyAll(
+					utils.WithField("Spec.Unschedulable", BeTrue()),
+					utils.WithField("Spec.Taints", ConsistOf(taint)),
 				))
 			})
 
