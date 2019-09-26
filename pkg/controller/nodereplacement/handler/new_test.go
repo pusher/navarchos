@@ -122,11 +122,11 @@ var _ = Describe("new node replacement handler", func() {
 	})
 
 	Context("shouldRequeueReplacement", func() {
-		var proceed bool
+		var requeue bool
 		var reason string
 
 		JustBeforeEach(func() {
-			proceed, reason = h.shouldRequeueReplacement(nodeReplacement)
+			requeue, reason = h.shouldRequeueReplacement(nodeReplacement)
 		})
 		Context("if a another NodeReplacement is higher priority", func() {
 			BeforeEach(func() {
@@ -144,8 +144,8 @@ var _ = Describe("new node replacement handler", func() {
 				Expect(*highPriorityNR.Spec.ReplacementSpec.Priority).To(BeNumerically(">", *nodeReplacement.Spec.ReplacementSpec.Priority))
 			})
 
-			It("sets proceed to false", func() {
-				Expect(proceed).To(BeFalse())
+			It("sets requeue to true", func() {
+				Expect(requeue).To(BeTrue())
 			})
 
 			It("requeues the NodeReplacement in the result", func() {
@@ -162,8 +162,8 @@ var _ = Describe("new node replacement handler", func() {
 				m.Create(inProgressNR).Should(Succeed())
 			})
 
-			It("sets proceed to false", func() {
-				Expect(proceed).To(BeFalse())
+			It("sets requeue to true", func() {
+				Expect(requeue).To(BeTrue())
 			})
 
 			It("requeues the NodeReplacement", func() {
@@ -171,10 +171,9 @@ var _ = Describe("new node replacement handler", func() {
 			})
 		})
 
-		Context("if the NodeReplacement should proceed", func() {
-
-			It("sets proceed to true", func() {
-				Expect(proceed).To(BeTrue())
+		Context("if the NodeReplacement should not be requeued", func() {
+			It("sets requeue to false", func() {
+				Expect(requeue).To(BeFalse())
 			})
 
 			It("does not set the reason string", func() {
@@ -215,17 +214,41 @@ var _ = Describe("new node replacement handler", func() {
 		})
 
 		Context("when the node exists", func() {
-			It("sets exists to true", func() {
-				Expect(exists).To(BeTrue())
+			Context("and the UIDs match", func() {
+				It("sets exists to true", func() {
+					Expect(exists).To(BeTrue())
+				})
+
+				It("does not set an error", func() {
+					Expect(existsErr).ToNot(HaveOccurred())
+				})
+
+				It("returns the node", func() {
+					Expect(node.GetName()).To(Equal(workerNode1.GetName()))
+					Expect(node.GetUID()).To(Equal(workerNode1.GetUID()))
+				})
 			})
 
-			It("does not set an error", func() {
-				Expect(existsErr).ToNot(HaveOccurred())
-			})
+			Context("and the UIDs do not match", func() {
+				BeforeEach(func() {
+					m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+						nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+						nr.Spec.NodeUID = "does-not-match"
+						return nr
+					}, timeout).Should(Succeed())
+				})
 
-			It("returns the node", func() {
-				Expect(node.GetName()).To(Equal(workerNode1.GetName()))
-				Expect(node.GetUID()).To(Equal(workerNode1.GetUID()))
+				It("sets exists to false", func() {
+					Expect(exists).To(BeFalse())
+				})
+
+				It("does not set an error", func() {
+					Expect(existsErr).ToNot(HaveOccurred())
+				})
+
+				It("does not return a node", func() {
+					Expect(node).To(BeNil())
+				})
 			})
 		})
 	})
@@ -235,8 +258,8 @@ var _ = Describe("new node replacement handler", func() {
 		JustBeforeEach(func() {
 			err = h.cordonNode(workerNode1)
 		})
-		Context("when called on an uncordoned node", func() {
 
+		Context("when called on an uncordoned node", func() {
 			It("should cordon the node", func() {
 				m.Eventually(workerNode1, timeout).Should(SatisfyAll(
 					utils.WithField("Spec.Unschedulable", BeTrue()),
@@ -244,7 +267,7 @@ var _ = Describe("new node replacement handler", func() {
 						ContainElement(SatisfyAll(
 							utils.WithField("Effect", Equal(corev1.TaintEffect("NoSchedule"))),
 							utils.WithField("Key", Equal("node.kubernetes.io/unschedulable")),
-							// utils.WithField("TimeAdded", Not(BeNil())),
+							utils.WithField("TimeAdded", Not(BeNil())),
 						)),
 					)))
 			})
@@ -274,7 +297,7 @@ var _ = Describe("new node replacement handler", func() {
 				}, timeout).Should(Succeed())
 			})
 
-			It("should leave the node cordoned", func() {
+			It("should not update the node", func() {
 				m.Consistently(workerNode1, timeout).Should(SatisfyAll(
 					utils.WithField("Spec.Unschedulable", BeTrue()),
 					utils.WithField("Spec.Taints", ConsistOf(taint)),
@@ -287,13 +310,13 @@ var _ = Describe("new node replacement handler", func() {
 		})
 	})
 
-	Context("getPodsToEvict", func() {
+	Context("getPodsOnNode", func() {
 		var nodePods []string
 		var ignoredPods []navarchosv1alpha1.PodReason
 		var err error
 
 		JustBeforeEach(func() {
-			nodePods, ignoredPods, err = h.getPodsToEvict(workerNode1)
+			nodePods, ignoredPods, err = h.getPodsOnNode(workerNode1)
 		})
 
 		Context("when a pod is owned by a daemonset", func() {

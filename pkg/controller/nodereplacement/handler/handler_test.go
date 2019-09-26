@@ -196,17 +196,21 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.RequeueReason).To(BeEmpty())
 			})
 
-			It("sets the Result NodePods field to contain a list of pods on the node", func() {
-				Expect(result.NodePods).To(ConsistOf(
-					"pod-1",
-					"pod-2",
-					"pod-3",
+			It("sets the Status NodePods field to contain a list of pods to evict", func() {
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.NodePods",
+					ConsistOf(
+						"pod-1",
+						"pod-2",
+						"pod-3",
+					),
 				))
 			})
 
-			It("sets the Result Phase field to InProgress", func() {
+			It("sets the Status Phase field to InProgress", func() {
 				inProgress := navarchosv1alpha1.ReplacementPhaseInProgress
-				Expect(result.Phase).To(Equal(&inProgress))
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.Phase",
+					Equal(inProgress),
+				))
 			})
 
 			It("should not return an error", func() {
@@ -247,11 +251,13 @@ var _ = Describe("Handler suite", func() {
 			))
 		})
 
-		It("should list all Pods in the Result NodePods field", func() {
-			Expect(result.NodePods).To(ConsistOf(
-				"pod-1",
-				"pod-2",
-				"pod-3",
+		It("should list all Pods in the Status NodePods field", func() {
+			m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.NodePods",
+				ConsistOf(
+					"pod-1",
+					"pod-2",
+					"pod-3",
+				),
 			))
 		})
 
@@ -281,8 +287,10 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			It("should ignore the DaemonSet managed Pod", func() {
-				Expect(result.IgnoredPods).To(ConsistOf(
-					navarchosv1alpha1.PodReason{Name: "pod-1", Reason: "pod owned by a DaemonSet"},
+				m.Eventually(nodeReplacement, timeout).Should(utils.WithField("Status.IgnoredPods",
+					ConsistOf(
+						navarchosv1alpha1.PodReason{Name: "pod-1", Reason: "pod owned by a DaemonSet"},
+					),
 				))
 			})
 
@@ -292,7 +300,7 @@ var _ = Describe("Handler suite", func() {
 		})
 	})
 
-	PContext("when the Handler is called on an InProgress NodeReplacement", func() {
+	Context("when the Handler is called on an InProgress NodeReplacement", func() {
 		BeforeEach(func() {
 			// Set the NodeReplacement as we expect it to be at this point
 			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {

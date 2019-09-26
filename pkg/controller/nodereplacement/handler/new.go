@@ -14,8 +14,8 @@ import (
 
 // handleNew handles a NodeReplacement in the New phase
 func (h *NodeReplacementHandler) handleNew(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
-	proceed, reason := h.shouldRequeueReplacement(instance)
-	if !proceed {
+	requeue, reason := h.shouldRequeueReplacement(instance)
+	if requeue {
 		return &status.Result{
 			Requeue:       true,
 			RequeueReason: reason,
@@ -42,7 +42,7 @@ func (h *NodeReplacementHandler) handleNew(instance *navarchosv1alpha1.NodeRepla
 	}
 
 	result := &status.Result{}
-	result.NodePods, result.IgnoredPods, err = h.getPodsToEvict(node)
+	result.NodePods, result.IgnoredPods, err = h.getPodsOnNode(node)
 	if err != nil {
 		return result, fmt.Errorf("error listing pods on node %s: %v", node.GetName(), err)
 	}
@@ -53,48 +53,53 @@ func (h *NodeReplacementHandler) handleNew(instance *navarchosv1alpha1.NodeRepla
 	return result, nil
 }
 
-// shouldRequeueReplacement determines if a replacement should be processed. If the
-// replacement passed should be processed it returns true along with an empty
-// reason string, otherwise it returns false with a reason
+// shouldRequeueReplacement determines if a replacement should be requeued, it
+// returns true with a reason as to why the replacement should be requeued.
+// Otherwise it returns false along with an empty reason string
 func (h *NodeReplacementHandler) shouldRequeueReplacement(instance *navarchosv1alpha1.NodeReplacement) (bool, string) {
 	replacements := &navarchosv1alpha1.NodeReplacementList{}
 	err := h.client.List(context.Background(), replacements)
 	if err != nil {
-		return false, fmt.Sprintf("failed to list NodeReplacements: %v", err)
+		return true, fmt.Sprintf("failed to list NodeReplacements: %v", err)
 	}
 
 	for _, replacement := range replacements.Items {
 		if *replacement.Spec.ReplacementSpec.Priority > *instance.Spec.ReplacementSpec.Priority {
 			reason := fmt.Sprintf("NodeReplacement \"%s\" has a higher priority", replacement.GetName())
-			return false, reason
+			return true, reason
 		}
 		if replacement.Status.Phase == navarchosv1alpha1.ReplacementPhaseInProgress {
 			reason := fmt.Sprintf("NodeReplacement \"%s\" is already in-progress", replacement.GetName())
-			return false, reason
+			return true, reason
 		}
 	}
 
-	return true, ""
+	return false, ""
 }
 
 // cordonNode cordons a node
 func (h *NodeReplacementHandler) cordonNode(node *corev1.Node) error {
+	now := metav1.Now()
 	node.Spec.Unschedulable = true
 	node, updated := addTaint(node, &corev1.Taint{
-		Key:    "node.kubernetes.io/unschedulable",
-		Effect: corev1.TaintEffect("NoSchedule"),
+		Key:       "node.kubernetes.io/unschedulable",
+		Effect:    corev1.TaintEffect("NoSchedule"),
+		TimeAdded: &now,
 	})
 	if !updated {
 		return nil
 	}
 
 	err := h.client.Update(context.Background(), node)
+	if err != nil {
+		return fmt.Errorf("error updating the node: %v", err)
+	}
 
-	return err
+	return nil
 }
 
-// addTaint tries to add a taint to annotations list. Returns a new copy of the
-// updated Node and true if something was updated false otherwise. When
+// addTaint tries to add a taint to the annotations list. It returns a new copy
+// of the updated Node and true if something was updated, false otherwise. When
 // determining if the taint already exists only the key:effect are checked, the
 // value and time added are disregarded
 func addTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
@@ -107,7 +112,7 @@ func addTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
 			// break early, taint already exists
 			return newNode, false
 		}
-		// perserve the previous taints§
+		// perserve the previous taints
 		newTaints = append(newTaints, nodeTaints[i])
 
 	}
@@ -118,10 +123,10 @@ func addTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
 	return newNode, true
 }
 
-// getPodsToEvict lists the pods present on a node. It returns a []string
+// getPodsOnNode lists the pods present on a node. It returns a []string
 // consisting of all pods on the node and a []PodReason consisitng of all pods
 // that are to be ignored
-func (h *NodeReplacementHandler) getPodsToEvict(node *corev1.Node) ([]string, []navarchosv1alpha1.PodReason, error) {
+func (h *NodeReplacementHandler) getPodsOnNode(node *corev1.Node) ([]string, []navarchosv1alpha1.PodReason, error) {
 	podList := &corev1.PodList{}
 	err := h.client.List(context.Background(), podList, client.MatchingField("spec.nodeName", node.GetName()))
 	if err != nil {

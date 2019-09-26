@@ -43,13 +43,14 @@ func NewNodeReplacementHandler(c client.Client, opts *Options) *NodeReplacementH
 // information in a Result. The use of fallthrough is to ensure that one
 // instance of a NodeReplacement can be handled in full without interruption
 func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
-	var result *status.Result
+	var result = &status.Result{}
 	var err error
 
 	switch instance.Status.Phase {
 	default:
 		newPhase := navarchosv1alpha1.ReplacementPhaseNew
-		// Update status before starting next phase
+		// Update status before starting next phase. This updates the instance
+		// phase too, it is mutated in place...
 		err = status.UpdateStatus(h.client, instance, &status.Result{
 			Phase: &newPhase,
 		})
@@ -73,23 +74,20 @@ func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacem
 		// Update status before starting next phase
 		err = status.UpdateStatus(h.client, instance, result)
 		if err != nil {
-			// This is an API error which means other error are also likely,
-			// bail and requeue We will reattempt the status update anyway where
-			// this is called
 			return result, fmt.Errorf("error updating status: %v", err)
 		}
 
 		fallthrough // This is important, we want one instance to be handled to completion without a requeue if possible
 	case navarchosv1alpha1.ReplacementPhaseInProgress:
-		result, err = h.handleInProgress(instance, result)
+		result, err = h.handleInProgress(instance)
 		if err != nil {
 			return result, err
 		}
+		// Nothing left to do
+		return result, nil
 	}
-	// Nothing left to do
-	return result, nil
 }
 
-func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement, result *status.Result) (*status.Result, error) {
-	return result, nil
+func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
+	return &status.Result{}, nil
 }
