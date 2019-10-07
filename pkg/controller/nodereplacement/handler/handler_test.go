@@ -44,6 +44,7 @@ var _ = Describe("Handler suite", func() {
 	var nodeReplacement *navarchosv1alpha1.NodeReplacement
 	var mgrStopped *sync.WaitGroup
 	var stopMgr chan struct{}
+	var stopPodGC chan struct{}
 
 	var workerNode1 *corev1.Node
 	var workerNode2 *corev1.Node
@@ -74,6 +75,27 @@ var _ = Describe("Handler suite", func() {
 		return pod
 	}
 
+	var startPodGC = func(m utils.Matcher) chan struct{} {
+		close := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case <-close:
+					return
+				default:
+					podList := &corev1.PodList{}
+					m.List(podList).Should(Succeed())
+					for _, pod := range podList.Items {
+						if pod.DeletionTimestamp != nil && pod.Status.Phase != corev1.PodSucceeded {
+							m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
+						}
+					}
+				}
+			}
+		}()
+		return close
+	}
+
 	BeforeEach(func() {
 		mgr, err := manager.New(cfg, manager.Options{})
 		Expect(err).NotTo(HaveOccurred())
@@ -81,6 +103,7 @@ var _ = Describe("Handler suite", func() {
 		Expect(err).ToNot(HaveOccurred())
 		m = utils.Matcher{Client: c}
 
+		stopPodGC = startPodGC(m)
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
 		grace := 5 * time.Second
@@ -118,6 +141,8 @@ var _ = Describe("Handler suite", func() {
 	AfterEach(func() {
 		close(stopMgr)
 		mgrStopped.Wait()
+
+		close(stopPodGC)
 
 		pods := &corev1.PodList{}
 		m.List(pods).Should(Succeed())
