@@ -58,7 +58,7 @@ func deleteObj(c client.Client, timeout time.Duration, obj runtime.Object) error
 		return err
 	}
 
-	err = c.Delete(context.TODO(), obj)
+	err = c.Delete(context.TODO(), obj, client.GracePeriodSeconds(int64(0)))
 	if err != nil {
 		return err
 	}
