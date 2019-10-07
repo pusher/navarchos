@@ -109,6 +109,7 @@ var _ = Describe("Handler suite", func() {
 		grace := 5 * time.Second
 		opts = &Options{
 			EvictionGracePeriod: &grace,
+			Config:              mgr.GetConfig(),
 		}
 
 		// Create a node to act as owners for the NodeReplacements created

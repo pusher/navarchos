@@ -2,6 +2,8 @@ package handler
 
 import (
 	"fmt"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"time"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
@@ -14,6 +16,13 @@ type Options struct {
 	// EvictionGracePeriod determines how long the controller should attempt to
 	// evict a pod before marking it a failed eviction
 	EvictionGracePeriod *time.Duration
+
+	// Config is used to construct a kubernetes client
+	Config *rest.Config
+
+	// k8sClient is the typed client interface for all standard groups in
+	// Kubernetes
+	k8sClient kubernetes.Interface
 }
 
 // Complete defaults any values that are not explicitly set
@@ -22,11 +31,15 @@ func (o *Options) Complete() {
 		grace := 30 * time.Second
 		o.EvictionGracePeriod = &grace
 	}
+	if o.Config != nil {
+		o.k8sClient = kubernetes.NewForConfigOrDie(o.Config)
+}
 }
 
 // NodeReplacementHandler handles the business logic within the NodeReplacement controller.
 type NodeReplacementHandler struct {
 	client              client.Client
+	k8sClient           kubernetes.Interface
 	evictionGracePeriod time.Duration
 }
 
@@ -35,6 +48,7 @@ func NewNodeReplacementHandler(c client.Client, opts *Options) *NodeReplacementH
 	opts.Complete()
 	return &NodeReplacementHandler{
 		client:              c,
+		k8sClient:           opts.k8sClient,
 		evictionGracePeriod: *opts.EvictionGracePeriod,
 	}
 }
