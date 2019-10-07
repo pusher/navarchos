@@ -2,9 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"time"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"time"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
@@ -33,7 +34,7 @@ func (o *Options) Complete() {
 	}
 	if o.Config != nil {
 		o.k8sClient = kubernetes.NewForConfigOrDie(o.Config)
-}
+	}
 }
 
 // NodeReplacementHandler handles the business logic within the NodeReplacement controller.
@@ -100,8 +101,4 @@ func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacem
 		// Nothing left to do
 		return result, nil
 	}
-}
-
-func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
-	return &status.Result{}, nil
 }

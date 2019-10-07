@@ -17,6 +17,8 @@ limitations under the License.
 package handler
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -60,6 +62,16 @@ var _ = Describe("Handler suite", func() {
 		pod := utils.ExamplePod.DeepCopy()
 		pod.Name = name
 		pod.Spec.NodeName = node.Name
+		pod.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				APIVersion:         "apps/v1",
+				Kind:               "ReplicaSet",
+				Name:               "example",
+				UID:                "qwertyuiop",
+				Controller:         boolPtr(true),
+				BlockOwnerDeletion: boolPtr(false),
+			},
+		})
 		return pod
 	}
 
@@ -78,6 +90,7 @@ var _ = Describe("Handler suite", func() {
 	var startPodGC = func(m utils.Matcher) chan struct{} {
 		close := make(chan struct{})
 		go func() {
+			defer GinkgoRecover()
 			for {
 				select {
 				case <-close:
@@ -87,7 +100,12 @@ var _ = Describe("Handler suite", func() {
 					m.List(podList).Should(Succeed())
 					for _, pod := range podList.Items {
 						if pod.DeletionTimestamp != nil && pod.Status.Phase != corev1.PodSucceeded {
+							fmt.Printf("Pod %s is to be deleted\n", pod.GetName())
 							m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
+							// Since we have no GC to check that the deletion requirements are met,
+							// we will mock the GC here
+							err := m.Client.Delete(context.Background(), &pod, client.GracePeriodSeconds(0))
+							Expect(err).ToNot(HaveOccurred())
 						}
 					}
 				}
@@ -106,7 +124,7 @@ var _ = Describe("Handler suite", func() {
 		stopPodGC = startPodGC(m)
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
-		grace := 5 * time.Second
+		grace := 1 * time.Second
 		opts = &Options{
 			EvictionGracePeriod: &grace,
 			Config:              mgr.GetConfig(),
@@ -149,9 +167,14 @@ var _ = Describe("Handler suite", func() {
 		m.List(pods).Should(Succeed())
 		for _, pod := range pods.Items {
 			m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
+			m.Update(&pod, func(obj utils.Object) utils.Object {
+				obj.SetOwnerReferences([]metav1.OwnerReference{})
+
+				return obj
+			}, timeout).Should(Succeed())
 		}
 
-		utils.DeleteAll(cfg, timeout,
+		utils.DeleteAll(cfg, 2*timeout,
 			&navarchosv1alpha1.NodeReplacementList{},
 			&corev1.NodeList{},
 			&corev1.PodList{},
@@ -345,9 +368,9 @@ var _ = Describe("Handler suite", func() {
 			close(done)
 		}, 2*timeout.Seconds())
 
-		PIt("evicts all pods in the NodePods list", func() {
+		It("evicts all pods in the NodePods list", func() {
 			for _, pod := range []*corev1.Pod{pod1, pod2, pod3} {
-				m.Eventually(pod, timeout).ShouldNot(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
+				m.Get(pod, timeout).ShouldNot(Succeed())
 			}
 		})
 
@@ -355,7 +378,7 @@ var _ = Describe("Handler suite", func() {
 			m.Consistently(pod4, consistentlyTimeout).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 		})
 
-		PIt("adds evicted pods to the Result EvictedPods field", func() {
+		It("adds evicted pods to the Result EvictedPods field", func() {
 			Expect(result.EvictedPods).To(ConsistOf("pod-1", "pod-2", "pod-3"))
 		})
 
@@ -363,11 +386,11 @@ var _ = Describe("Handler suite", func() {
 			Expect(result.FailedPods).To(BeEmpty())
 		})
 
-		PIt("deletes the node", func() {
+		It("deletes the node", func() {
 			m.Get(workerNode1, timeout).ShouldNot(Succeed())
 		})
 
-		PIt("should not return an error", func() {
+		It("should not return an error", func() {
 			Expect(handleErr).ToNot(HaveOccurred())
 		})
 
@@ -385,12 +408,12 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.FailedPods).To(BeEmpty())
 			})
 
-			PIt("should not return an error", func() {
+			It("should not return an error", func() {
 				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
-		Context("when a Pod Disruption Budget blocks eviction of a pod", func() {
+		PContext("when a Pod Disruption Budget blocks eviction of a pod", func() {
 			var pdb *policyv1beta1.PodDisruptionBudget
 			BeforeEach(func() {
 				pdb = utils.ExamplePodDisruptionBudget.DeepCopy()
@@ -459,4 +482,8 @@ var _ = Describe("Handler suite", func() {
 
 func intPtr(i int) *int {
 	return &i
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }

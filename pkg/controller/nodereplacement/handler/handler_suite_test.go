@@ -38,14 +38,24 @@ var cfg *rest.Config
 
 func TestMain(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "NodeRollout Handler Suite", reporters.Reporters())
+	RunSpecsWithDefaultAndCustomReporters(t, "NodeReplacement Handler Suite", reporters.Reporters())
 }
 
 var t *envtest.Environment
 
 var _ = BeforeSuite(func() {
 	t = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "..", "config", "crds")},
+		CRDDirectoryPaths:        []string{filepath.Join("..", "..", "..", "..", "config", "crds")},
+		AttachControlPlaneOutput: true,
+		// KubeAPIServerFlags: []string{
+		// 	"--etcd-servers={{ if .EtcdURL }}{{ .EtcdURL.String }}{{ end }}",
+		// 	"--cert-dir={{ .CertDir }}",
+		// 	"--insecure-port={{ if .URL }}{{ .URL.Port }}{{ end }}",
+		// 	"--insecure-bind-address={{ if .URL }}{{ .URL.Hostname }}{{ end }}",
+		// 	"--secure-port={{ if .SecurePort }}{{ .SecurePort }}{{ end }}",
+		// 	"--disable-admission-plugins=ServiceAccount",
+		// 	"--runtime-config=policy/v1beta1=false",
+		// },
 	}
 	apis.AddToScheme(scheme.Scheme)
 
