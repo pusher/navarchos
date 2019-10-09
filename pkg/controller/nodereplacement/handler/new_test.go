@@ -21,8 +21,6 @@ var _ = Describe("new node replacement handler", func() {
 	var m utils.Matcher
 	var h *NodeReplacementHandler
 	var opts *Options
-	var result *status.Result
-	var handleErr error
 
 	var nodeReplacement *navarchosv1alpha1.NodeReplacement
 	var mgrStopped *sync.WaitGroup
@@ -372,6 +370,9 @@ var _ = Describe("new node replacement handler", func() {
 	})
 
 	Context("when handleNew is called on a New NodeReplacement", func() {
+		var result *status.Result
+		var handleErr error
+
 		JustBeforeEach(func() {
 			result, handleErr = h.handleNew(nodeReplacement)
 		})

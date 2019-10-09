@@ -14,6 +14,8 @@ import (
 	"k8s.io/kubectl/pkg/drain"
 )
 
+// threadsafeEvictedPods provides a threadsafe []string. This is used to record
+// the succesfully evicted pods through the OnPodDeletedOrEvicted callback.
 type threadsafeEvictedPods struct {
 	sync.RWMutex
 	pods []string
@@ -31,6 +33,8 @@ func (e *threadsafeEvictedPods) readPods() []string {
 	return e.pods
 }
 
+// handleInProgress handles a NodeReplacement in the in progress phase. It
+// drains the node specified in the replacement and then marks it completed.
 func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
 	evictedPods := threadsafeEvictedPods{
 		pods: []string{},
@@ -54,7 +58,7 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 	if err != nil {
 		return &status.Result{
 			EvictedPods: evictedPods.readPods(),
-		}, err
+		}, fmt.Errorf("error draining node: %v", err)
 	}
 
 	completedPhase := navarchosv1alpha1.ReplacementPhaseCompleted
@@ -67,6 +71,7 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 	}, nil
 }
 
+// runNodeDrain uses the kubectl drain package to drain a node.
 func runNodeDrain(drainer *drain.Helper, nodeName string) error {
 	list, errs := drainer.GetPodsForDeletion(nodeName)
 	if errs != nil {

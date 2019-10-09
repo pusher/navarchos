@@ -18,7 +18,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -100,7 +99,6 @@ var _ = Describe("Handler suite", func() {
 					m.List(podList).Should(Succeed())
 					for _, pod := range podList.Items {
 						if pod.DeletionTimestamp != nil && pod.Status.Phase != corev1.PodSucceeded {
-							fmt.Printf("Pod %s is to be deleted\n", pod.GetName())
 							m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
 							// Since we have no GC to check that the deletion requirements are met,
 							// we will mock the GC here
@@ -167,14 +165,9 @@ var _ = Describe("Handler suite", func() {
 		m.List(pods).Should(Succeed())
 		for _, pod := range pods.Items {
 			m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
-			m.Update(&pod, func(obj utils.Object) utils.Object {
-				obj.SetOwnerReferences([]metav1.OwnerReference{})
-
-				return obj
-			}, timeout).Should(Succeed())
 		}
 
-		utils.DeleteAll(cfg, 2*timeout,
+		utils.DeleteAll(cfg, timeout,
 			&navarchosv1alpha1.NodeReplacementList{},
 			&corev1.NodeList{},
 			&corev1.PodList{},
