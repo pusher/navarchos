@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"sync"
@@ -14,27 +13,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubectl/pkg/drain"
 )
-
-type lockingBuffer struct {
-	b *bytes.Buffer
-	m *sync.RWMutex
-}
-
-func (b *lockingBuffer) Read(p []byte) (n int, err error) {
-	b.m.Lock()
-	defer b.m.Unlock()
-	return b.b.Read(p)
-}
-func (b *lockingBuffer) Write(p []byte) (n int, err error) {
-	b.m.Lock()
-	defer b.m.Unlock()
-	return b.b.Write(p)
-}
-func (b *lockingBuffer) String() string {
-	b.m.Lock()
-	defer b.m.Unlock()
-	return b.b.String()
-}
 
 type threadsafeEvictedPods struct {
 	sync.RWMutex
@@ -54,10 +32,6 @@ func (e *threadsafeEvictedPods) readPods() []string {
 }
 
 func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
-	// outBuffer := &lockingBuffer{
-	// 	b: &bytes.Buffer{},
-	// 	m: &sync.RWMutex{},
-	// }
 	evictedPods := threadsafeEvictedPods{
 		pods: []string{},
 	}
