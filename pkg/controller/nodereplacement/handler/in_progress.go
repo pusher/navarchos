@@ -36,12 +36,31 @@ func (b *lockingBuffer) String() string {
 	return b.b.String()
 }
 
+type threadsafeEvictedPods struct {
+	sync.RWMutex
+	pods []string
+}
+
+func (e *threadsafeEvictedPods) writePod(podName string) {
+	e.Lock()
+	defer e.Unlock()
+	e.pods = append(e.pods, podName)
+}
+
+func (e *threadsafeEvictedPods) readPods() []string {
+	e.RLock()
+	defer e.RUnlock()
+	return e.pods
+}
+
 func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
 	// outBuffer := &lockingBuffer{
 	// 	b: &bytes.Buffer{},
 	// 	m: &sync.RWMutex{},
 	// }
-	evictedPods := []string{}
+	evictedPods := threadsafeEvictedPods{
+		pods: []string{},
+	}
 
 	helper := &drain.Helper{
 		Client:              h.k8sClient,
@@ -53,14 +72,14 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 		ErrOut:              os.Stderr,
 
 		OnPodDeletedOrEvicted: func(pod *corev1.Pod, _ bool) {
-			evictedPods = append(evictedPods, pod.GetName())
+			evictedPods.writePod(pod.GetName())
 		},
 	}
 
 	err := runNodeDrain(helper, instance.Spec.NodeName)
 	if err != nil {
 		return &status.Result{
-			EvictedPods: evictedPods,
+			EvictedPods: evictedPods.readPods(),
 		}, err
 	}
 
@@ -68,7 +87,7 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 	completedTime := metav1.Now()
 
 	return &status.Result{
-		EvictedPods:         evictedPods,
+		EvictedPods:         evictedPods.readPods(),
 		Phase:               &completedPhase,
 		CompletionTimestamp: &completedTime,
 	}, nil
