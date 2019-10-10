@@ -123,8 +123,10 @@ var _ = Describe("Handler suite", func() {
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
 		grace := 1 * time.Second
+		drain := 5 * time.Second
 		opts = &Options{
 			EvictionGracePeriod: &grace,
+			DrainTimeout:        &drain,
 			Config:              mgr.GetConfig(),
 		}
 
@@ -413,7 +415,7 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			Context("permanently", func() {
-				PIt("fails the eviction of the Pod", func() {
+				It("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
 						navarchosv1alpha1.PodReason{
 							Name:   "pod-1",
@@ -426,7 +428,7 @@ var _ = Describe("Handler suite", func() {
 					m.Consistently(workerNode1).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 				})
 
-				PIt("should return an error", func() {
+				It("should return an error", func() {
 					Expect(handleErr).To(MatchError(Equal("failure evicting pods")))
 				})
 			})
@@ -446,12 +448,12 @@ var _ = Describe("Handler suite", func() {
 					}()
 				})
 
-				PIt("retries the eviction until it passes", func() {
+				It("retries the eviction until it passes", func() {
 					Expect(result.FailedPods).To(BeEmpty())
 					Expect(result.EvictedPods).To(ContainElement(Equal("pod-1")))
 				})
 
-				PIt("should not return an error", func() {
+				It("should not return an error", func() {
 					Expect(handleErr).ToNot(HaveOccurred())
 				})
 			})
@@ -461,8 +463,4 @@ var _ = Describe("Handler suite", func() {
 
 func intPtr(i int) *int {
 	return &i
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }

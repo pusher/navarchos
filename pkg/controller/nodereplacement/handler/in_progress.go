@@ -42,10 +42,11 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 
 	helper := &drain.Helper{
 		Client:              h.k8sClient,
-		IgnoreAllDaemonSets: true,
-		Timeout:             15 * time.Minute,
+		IgnoreAllDaemonSets: h.ignoreAllDaemonSets,
+		Timeout:             h.drainTimeout,
 		GracePeriodSeconds:  int(h.evictionGracePeriod / time.Second),
-		DeleteLocalData:     true,
+		DeleteLocalData:     h.deleteLocalData,
+		Force:               h.forcePodDeletion,
 		Out:                 os.Stdout,
 		ErrOut:              os.Stderr,
 
