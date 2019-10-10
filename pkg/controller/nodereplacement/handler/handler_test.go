@@ -17,6 +17,7 @@ limitations under the License.
 package handler
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -44,6 +45,7 @@ var _ = Describe("Handler suite", func() {
 	var nodeReplacement *navarchosv1alpha1.NodeReplacement
 	var mgrStopped *sync.WaitGroup
 	var stopMgr chan struct{}
+	var stopPodGC chan struct{}
 
 	var workerNode1 *corev1.Node
 	var workerNode2 *corev1.Node
@@ -59,6 +61,16 @@ var _ = Describe("Handler suite", func() {
 		pod := utils.ExamplePod.DeepCopy()
 		pod.Name = name
 		pod.Spec.NodeName = node.Name
+		pod.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				APIVersion:         "apps/v1",
+				Kind:               "ReplicaSet",
+				Name:               "example",
+				UID:                "qwertyuiop",
+				Controller:         boolPtr(true),
+				BlockOwnerDeletion: boolPtr(false),
+			},
+		})
 		return pod
 	}
 
@@ -74,6 +86,32 @@ var _ = Describe("Handler suite", func() {
 		return pod
 	}
 
+	var startPodGC = func(m utils.Matcher) chan struct{} {
+		close := make(chan struct{})
+		go func() {
+			defer GinkgoRecover()
+			for {
+				select {
+				case <-close:
+					return
+				default:
+					podList := &corev1.PodList{}
+					m.List(podList).Should(Succeed())
+					for _, pod := range podList.Items {
+						if pod.DeletionTimestamp != nil && pod.Status.Phase != corev1.PodSucceeded {
+							m.UpdateStatus(&pod, setPodSucceeded, timeout).Should(Succeed())
+							// Since we have no GC to check that the deletion requirements are met,
+							// we will mock the GC here
+							err := m.Client.Delete(context.Background(), &pod, client.GracePeriodSeconds(0))
+							Expect(err).ToNot(HaveOccurred())
+						}
+					}
+				}
+			}
+		}()
+		return close
+	}
+
 	BeforeEach(func() {
 		mgr, err := manager.New(cfg, manager.Options{})
 		Expect(err).NotTo(HaveOccurred())
@@ -81,11 +119,15 @@ var _ = Describe("Handler suite", func() {
 		Expect(err).ToNot(HaveOccurred())
 		m = utils.Matcher{Client: c}
 
+		stopPodGC = startPodGC(m)
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
-		grace := 5 * time.Second
+		grace := 1 * time.Second
+		drain := 5 * time.Second
 		opts = &Options{
 			EvictionGracePeriod: &grace,
+			DrainTimeout:        &drain,
+			Config:              mgr.GetConfig(),
 		}
 
 		// Create a node to act as owners for the NodeReplacements created
@@ -118,6 +160,8 @@ var _ = Describe("Handler suite", func() {
 	AfterEach(func() {
 		close(stopMgr)
 		mgrStopped.Wait()
+
+		close(stopPodGC)
 
 		pods := &corev1.PodList{}
 		m.List(pods).Should(Succeed())
@@ -261,20 +305,6 @@ var _ = Describe("Handler suite", func() {
 			))
 		})
 
-		It("should not set any Pods in the EvictedPods field", func() {
-			Expect(result.EvictedPods).To(BeEmpty())
-		})
-
-		It("should not evict any pods", func() {
-			for _, pod := range []*corev1.Pod{pod1, pod2, pod3, pod4} {
-				m.Consistently(pod).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
-			}
-		})
-
-		It("should not return an error", func() {
-			Expect(handleErr).ToNot(HaveOccurred())
-		})
-
 		Context("when a pod is owned by a DeamonSet", func() {
 			BeforeEach(func() {
 				ds := utils.ExampleDaemonSet.DeepCopy()
@@ -319,9 +349,9 @@ var _ = Describe("Handler suite", func() {
 			close(done)
 		}, 2*timeout.Seconds())
 
-		PIt("evicts all pods in the NodePods list", func() {
+		It("evicts all pods in the NodePods list", func() {
 			for _, pod := range []*corev1.Pod{pod1, pod2, pod3} {
-				m.Eventually(pod, timeout).ShouldNot(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
+				m.Get(pod, timeout).ShouldNot(Succeed())
 			}
 		})
 
@@ -329,7 +359,7 @@ var _ = Describe("Handler suite", func() {
 			m.Consistently(pod4, consistentlyTimeout).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 		})
 
-		PIt("adds evicted pods to the Result EvictedPods field", func() {
+		It("adds evicted pods to the Result EvictedPods field", func() {
 			Expect(result.EvictedPods).To(ConsistOf("pod-1", "pod-2", "pod-3"))
 		})
 
@@ -341,7 +371,7 @@ var _ = Describe("Handler suite", func() {
 			m.Get(workerNode1, timeout).ShouldNot(Succeed())
 		})
 
-		PIt("should not return an error", func() {
+		It("should not return an error", func() {
 			Expect(handleErr).ToNot(HaveOccurred())
 		})
 
@@ -359,12 +389,12 @@ var _ = Describe("Handler suite", func() {
 				Expect(result.FailedPods).To(BeEmpty())
 			})
 
-			PIt("should not return an error", func() {
+			It("should not return an error", func() {
 				Expect(handleErr).ToNot(HaveOccurred())
 			})
 		})
 
-		Context("when a Pod Disruption Budget blocks eviction of a pod", func() {
+		PContext("when a Pod Disruption Budget blocks eviction of a pod", func() {
 			var pdb *policyv1beta1.PodDisruptionBudget
 			BeforeEach(func() {
 				pdb = utils.ExamplePodDisruptionBudget.DeepCopy()
@@ -385,7 +415,7 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			Context("permanently", func() {
-				PIt("fails the eviction of the Pod", func() {
+				It("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
 						navarchosv1alpha1.PodReason{
 							Name:   "pod-1",
@@ -398,7 +428,7 @@ var _ = Describe("Handler suite", func() {
 					m.Consistently(workerNode1).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
 				})
 
-				PIt("should return an error", func() {
+				It("should return an error", func() {
 					Expect(handleErr).To(MatchError(Equal("failure evicting pods")))
 				})
 			})
@@ -418,12 +448,12 @@ var _ = Describe("Handler suite", func() {
 					}()
 				})
 
-				PIt("retries the eviction until it passes", func() {
+				It("retries the eviction until it passes", func() {
 					Expect(result.FailedPods).To(BeEmpty())
 					Expect(result.EvictedPods).To(ContainElement(Equal("pod-1")))
 				})
 
-				PIt("should not return an error", func() {
+				It("should not return an error", func() {
 					Expect(handleErr).ToNot(HaveOccurred())
 				})
 			})

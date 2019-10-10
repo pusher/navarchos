@@ -38,7 +38,7 @@ var cfg *rest.Config
 
 func TestMain(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "NodeRollout Handler Suite", reporters.Reporters())
+	RunSpecsWithDefaultAndCustomReporters(t, "NodeReplacement Handler Suite", reporters.Reporters())
 }
 
 var t *envtest.Environment

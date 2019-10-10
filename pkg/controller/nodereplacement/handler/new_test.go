@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
+	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
 	"github.com/pusher/navarchos/test/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -365,6 +366,29 @@ var _ = Describe("new node replacement handler", func() {
 			It("should not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
+		})
+	})
+
+	Context("when handleNew is called on a New NodeReplacement", func() {
+		var result *status.Result
+		var handleErr error
+
+		JustBeforeEach(func() {
+			result, handleErr = h.handleNew(nodeReplacement)
+		})
+
+		It("should not set any Pods in the EvictedPods field", func() {
+			Expect(result.EvictedPods).To(BeEmpty())
+		})
+
+		It("should not evict any pods", func() {
+			for _, pod := range []*corev1.Pod{pod1, pod2, pod3, pod4} {
+				m.Consistently(pod).Should(utils.WithField("ObjectMeta.DeletionTimestamp", BeNil()))
+			}
+		})
+
+		It("should not return an error", func() {
+			Expect(handleErr).ToNot(HaveOccurred())
 		})
 	})
 })
