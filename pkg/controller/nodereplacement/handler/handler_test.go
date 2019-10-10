@@ -459,6 +459,28 @@ var _ = Describe("Handler suite", func() {
 			})
 		})
 	})
+
+	Context("when the Handler is called on a Completed NodeReplacement", func() {
+		BeforeEach(func() {
+			// Set the NodeReplacement as we expect it to be at this point
+			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+				nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
+				return nr
+			}, timeout).Should(Succeed())
+			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseCompleted))
+
+		})
+
+		It("should not return an error", func() {
+			Expect(handleErr).ToNot(HaveOccurred())
+		})
+
+		It("should remain in the completed phase", func() {
+			m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithField("Status.Phase", Equal(navarchosv1alpha1.ReplacementPhaseCompleted)))
+		})
+
+	})
 })
 
 func intPtr(i int) *int {
