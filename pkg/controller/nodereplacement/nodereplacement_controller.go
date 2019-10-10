@@ -84,6 +84,10 @@ type ReconcileNodeReplacement struct {
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 // +kubebuilder:rbac:groups=navarchos.pusher.com,resources=nodereplacements,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=navarchos.pusher.com,resources=nodereplacements/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups="",resources=pods/eviction,verbs=create
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch
 func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the NodeReplacement instance
 	instance := &navarchosv1alpha1.NodeReplacement{}
