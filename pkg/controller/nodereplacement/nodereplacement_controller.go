@@ -24,6 +24,7 @@ import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/handler"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,6 +64,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to NodeReplacement
 	err = c.Watch(&source.Kind{Type: &navarchosv1alpha1.NodeReplacement{}}, &watchhandler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	err = mgr.GetCache().IndexField(&corev1.Pod{}, "spec.nodeName", func(obj runtime.Object) []string {
+		pod, _ := obj.(*corev1.Pod)
+		return []string{pod.Spec.NodeName}
+	})
 	if err != nil {
 		return err
 	}

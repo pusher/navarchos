@@ -104,9 +104,18 @@ type PodReason struct {
 type NodeReplacementConditionType string
 
 const (
-	// NodeCordonedType refers to whether the controller successfully managed to
-	// cordon the node.
+	// NodeCordonedType refers to the type of condition where the controller
+	// successfully managed to cordon the node
 	NodeCordonedType NodeReplacementConditionType = "NodeCordoned"
+)
+
+const (
+	// ReasonNodeCordoned refers to whether the controller successfully managed to
+	// cordon the node
+	ReasonNodeCordoned NodeReplacementConditionReason = "NodeCordoned"
+
+	// ReasonErrorCordoningNode is a replacement condition for a failed node cordon
+	ReasonErrorCordoningNode NodeReplacementConditionReason = "ErrorCordoningNode"
 )
 
 // NodeReplacementConditionReason represents a valid condition reason for a NodeReplacement
