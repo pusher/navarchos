@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
 
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
@@ -134,7 +135,11 @@ func addTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
 // that are to be ignored
 func (h *NodeReplacementHandler) getPodsOnNode(node *corev1.Node) ([]string, []navarchosv1alpha1.PodReason, error) {
 	podList := &corev1.PodList{}
-	err := h.client.List(context.Background(), podList, client.MatchingField("spec.nodeName", node.GetName()))
+	err := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		return h.client.List(ctx, podList, client.MatchingField("spec.nodeName", node.GetName()))
+	}()
 	if err != nil {
 		return []string{}, []navarchosv1alpha1.PodReason{}, err
 	}
