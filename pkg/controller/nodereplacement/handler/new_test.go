@@ -387,6 +387,10 @@ var _ = Describe("new node replacement handler", func() {
 			}
 		})
 
+		It("should set the NodeCordonReason to NodeCordoned", func() {
+			Expect(result.NodeCordonReason).To(Equal(navarchosv1alpha1.ReasonNodeCordoned))
+		})
+
 		It("should not return an error", func() {
 			Expect(handleErr).ToNot(HaveOccurred())
 		})

@@ -38,14 +38,15 @@ func (h *NodeReplacementHandler) handleNew(instance *navarchosv1alpha1.NodeRepla
 
 	err = h.cordonNode(node)
 	if err != nil {
+		// TODO: once migrated to kind, test this case.
 		return &status.Result{
 			NodeCordonError:  err,
-			NodeCordonReason: navarchosv1alpha1.NodeReplacementConditionReason("ErrorCordoningNode"),
+			NodeCordonReason: navarchosv1alpha1.ReasonErrorCordoningNode,
 		}, fmt.Errorf("error cordoning node: %v", err)
 	}
 
 	result := &status.Result{
-		NodeCordonReason: navarchosv1alpha1.NodeReplacementConditionReason("NodeCordoned"),
+		NodeCordonReason: navarchosv1alpha1.ReasonNodeCordoned,
 	}
 	result.NodePods, result.IgnoredPods, err = h.getPodsOnNode(node)
 	if err != nil {
