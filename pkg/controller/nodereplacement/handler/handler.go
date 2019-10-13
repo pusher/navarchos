@@ -138,6 +138,8 @@ func (h *NodeReplacementHandler) Handle(instance *navarchosv1alpha1.NodeReplacem
 		}
 		// Nothing left to do
 		return result, nil
+	case navarchosv1alpha1.ReplacementPhaseCompleted:
+		return &status.Result{}, nil
 	}
 }
 

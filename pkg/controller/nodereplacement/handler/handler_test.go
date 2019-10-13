@@ -180,15 +180,14 @@ var _ = Describe("Handler suite", func() {
 		m.Eventually(&corev1.PodList{}, timeout).Should(utils.WithListItems(BeEmpty()))
 	})
 
-	JustBeforeEach(func() {
+	// Since HandleInProgress could take some time, we set a timeout
+	JustBeforeEach(func(done Done) {
 		h = NewNodeReplacementHandler(m.Client, opts)
-	})
+		result, handleErr = h.Handle(nodeReplacement)
+		close(done)
+	}, 2*timeout.Seconds())
 
 	Context("when the Handler is called on a New NodeReplacement", func() {
-		JustBeforeEach(func() {
-			result, handleErr = h.Handle(nodeReplacement)
-		})
-
 		Context("if a another NodeReplacement is higher priority", func() {
 			BeforeEach(func() {
 				highPriorityNR := utils.ExampleNodeReplacement.DeepCopy()
@@ -343,12 +342,6 @@ var _ = Describe("Handler suite", func() {
 			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseInProgress))
 		})
 
-		// Since HandleInProgress could take some time, we set a timeout
-		JustBeforeEach(func(done Done) {
-			result, handleErr = h.Handle(nodeReplacement)
-			close(done)
-		}, 2*timeout.Seconds())
-
 		It("evicts all pods in the NodePods list", func() {
 			for _, pod := range []*corev1.Pod{pod1, pod2, pod3} {
 				m.Get(pod, timeout).ShouldNot(Succeed())
@@ -458,6 +451,32 @@ var _ = Describe("Handler suite", func() {
 				})
 			})
 		})
+	})
+
+	Context("when the Handler is called on a Completed NodeReplacement", func() {
+		BeforeEach(func() {
+			// Set the NodeReplacement as we expect it to be at this point
+			m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+				nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+				nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
+				return nr
+			}, timeout).Should(Succeed())
+			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseCompleted))
+
+		})
+
+		It("should not return an error", func() {
+			Expect(handleErr).ToNot(HaveOccurred())
+		})
+
+		It("should remain in the completed phase", func() {
+			m.Consistently(nodeReplacement, consistentlyTimeout).Should(utils.WithField("Status.Phase", Equal(navarchosv1alpha1.ReplacementPhaseCompleted)))
+		})
+
+		It("should return an empty result", func() {
+			Expect(result).To(Equal(&status.Result{}))
+		})
+
 	})
 })
 
