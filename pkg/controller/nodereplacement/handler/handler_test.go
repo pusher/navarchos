@@ -18,6 +18,7 @@ package handler
 
 import (
 	"context"
+	"k8s.io/client-go/kubernetes"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -46,9 +48,11 @@ var _ = Describe("Handler suite", func() {
 	var mgrStopped *sync.WaitGroup
 	var stopMgr chan struct{}
 	var stopPodGC chan struct{}
+	var stopNamespaceGC chan struct{}
 
 	var workerNode1 *corev1.Node
 	var workerNode2 *corev1.Node
+	var namespace *corev1.Namespace
 	var pod1 *corev1.Pod
 	var pod2 *corev1.Pod
 	var pod3 *corev1.Pod
@@ -112,14 +116,53 @@ var _ = Describe("Handler suite", func() {
 		return close
 	}
 
+	var startNamespaceGC = func(m utils.Matcher) chan struct{} {
+		k8sClient, err := kubernetes.NewForConfig(cfg)
+		Expect(err).To(Not(HaveOccurred()))
+
+		close := make(chan struct{})
+		go func() {
+			defer GinkgoRecover()
+			for {
+				select {
+				case <-close:
+					return
+				default:
+					nsList := &corev1.NamespaceList{}
+					m.List(nsList).Should(Succeed())
+					for _, ns := range nsList.Items {
+						if ns.DeletionTimestamp != nil {
+							ns, err := k8sClient.CoreV1().Namespaces().Finalize(&ns)
+							Expect(err).ToNot(HaveOccurred())
+							// Since we have no GC to check that the deletion requirements are met,
+							// we will mock the GC here
+							retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+								deleteErr := k8sClient.CoreV1().Namespaces().Delete(ns.GetName(), &metav1.DeleteOptions{
+									GracePeriodSeconds: int64Ptr(0),
+								})
+								return deleteErr
+							})
+
+							Expect(retryErr).ToNot(HaveOccurred())
+						}
+					}
+				}
+			}
+		}()
+		return close
+	}
+
 	BeforeEach(func() {
-		mgr, err := manager.New(cfg, manager.Options{})
+		mgr, err := manager.New(cfg, manager.Options{
+			MetricsBindAddress: "0",
+		})
 		Expect(err).NotTo(HaveOccurred())
 		c, err := client.New(cfg, client.Options{})
 		Expect(err).ToNot(HaveOccurred())
 		m = utils.Matcher{Client: c}
 
 		stopPodGC = startPodGC(m)
+		stopNamespaceGC = startNamespaceGC(m)
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
 		grace := 1 * time.Second
@@ -135,6 +178,11 @@ var _ = Describe("Handler suite", func() {
 		workerNode2 = utils.ExampleNodeWorker2.DeepCopy()
 		m.Create(workerNode1).Should(Succeed())
 		m.Create(workerNode2).Should(Succeed())
+
+		// Create non default namespace
+		namespace = utils.ExampleNamespace.DeepCopy()
+		namespace.ObjectMeta.Name = "not-default"
+		m.Create(namespace).Should(Succeed())
 
 		// Create some pods attached to the nodes
 		pod1 = newPod("pod-1", workerNode1)
@@ -180,6 +228,12 @@ var _ = Describe("Handler suite", func() {
 		)
 
 		m.Eventually(&corev1.PodList{}, timeout).Should(utils.WithListItems(BeEmpty()))
+
+		m.Delete(namespace).Should(Succeed())
+		m.Get(namespace, timeout).ShouldNot(Succeed())
+
+		close(stopNamespaceGC)
+
 	})
 
 	// Since HandleInProgress could take some time, we set a timeout
@@ -483,5 +537,9 @@ var _ = Describe("Handler suite", func() {
 })
 
 func intPtr(i int) *int {
+	return &i
+}
+
+func int64Ptr(i int64) *int64 {
 	return &i
 }

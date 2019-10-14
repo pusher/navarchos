@@ -216,3 +216,10 @@ var ExamplePodDisruptionBudget = policyv1beta1.PodDisruptionBudget{
 		},
 	},
 }
+
+// ExampleNamespace is an example namespace for use in tests
+var ExampleNamespace = corev1.Namespace{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "example-namespace",
+	},
+}
