@@ -141,6 +141,8 @@ var _ = Describe("Handler suite", func() {
 		pod2 = newPod("pod-2", workerNode1)
 		pod3 = newPod("pod-3", workerNode1)
 		pod4 = newPod("pod-4", workerNode2)
+		pod3.ObjectMeta.Namespace = "not-default"
+		pod4.ObjectMeta.Namespace = "not-default"
 		m.Create(pod1).Should(Succeed())
 		m.Create(pod2).Should(Succeed())
 		m.Create(pod3).Should(Succeed())
