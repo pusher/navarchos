@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/kubectl/pkg/drain"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // threadsafeEvictedPods provides a threadsafe []string. This is used to record
@@ -62,6 +64,13 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 		}, fmt.Errorf("error draining node: %v", err)
 	}
 
+	err = h.addCompletedLabel(instance.Spec.NodeName)
+	if err != nil {
+		return &status.Result{
+			EvictedPods: evictedPods.readPods(),
+		}, fmt.Errorf("error labeling node as completed: %v", err)
+	}
+
 	completedPhase := navarchosv1alpha1.ReplacementPhaseCompleted
 	completedTime := metav1.Now()
 
@@ -87,4 +96,20 @@ func runNodeDrain(drainer *drain.Helper, nodeName string) error {
 		return err
 	}
 	return nil
+}
+
+func (h *NodeReplacementHandler) addCompletedLabel(nodeName string) error {
+	node := &corev1.Node{}
+	err := h.client.Get(context.Background(), client.ObjectKey{
+		Name: nodeName,
+	}, node)
+	if err != nil {
+		return err
+	}
+
+	nodeLabels := node.GetLabels()
+	nodeLabels["navarchos.pusher.com/drain-completed"] = time.Now().Format("2006-01-02T15h04m05s")
+	node.SetLabels(nodeLabels)
+
+	return h.client.Update(context.Background(), node)
 }
