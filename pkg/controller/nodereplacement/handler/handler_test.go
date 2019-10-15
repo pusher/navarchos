@@ -187,6 +187,23 @@ var _ = Describe("Handler suite", func() {
 		close(done)
 	}, 2*timeout.Seconds())
 
+	Context("when the Handler is called on an uninitialised NodeReplacement", func() {
+		Context("with no phase set", func() {
+			BeforeEach(func() {
+				m.Update(nodeReplacement, func(obj utils.Object) utils.Object {
+					nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+					nr.Status.Phase = ""
+					return nr
+				}, timeout).Should(Succeed())
+			})
+
+			It("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
+			})
+
+		})
+	})
+
 	Context("when the Handler is called on a New NodeReplacement", func() {
 		Context("if a another NodeReplacement is higher priority", func() {
 			BeforeEach(func() {
