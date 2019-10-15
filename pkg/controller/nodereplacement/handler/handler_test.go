@@ -360,6 +360,10 @@ var _ = Describe("Handler suite", func() {
 			Expect(result.FailedPods).To(BeEmpty())
 		})
 
+		It("adds a completed label to the node", func() {
+			m.Eventually(workerNode1, timeout).Should(utils.WithField("ObjectMeta.Labels", HaveKey("navarchos.pusher.com/drain-completed")))
+		})
+
 		PIt("deletes the node", func() {
 			m.Get(workerNode1, timeout).ShouldNot(Succeed())
 		})
