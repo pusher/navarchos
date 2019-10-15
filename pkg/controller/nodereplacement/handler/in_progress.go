@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubectl/pkg/drain"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -64,11 +65,13 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 		}, fmt.Errorf("error draining node: %v", err)
 	}
 
-	err = h.addCompletedLabel(instance.Spec.NodeName)
-	if err != nil {
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		return h.addCompletedLabel(instance.Spec.NodeName)
+	})
+	if retryErr != nil {
 		return &status.Result{
 			EvictedPods: evictedPods.readPods(),
-		}, fmt.Errorf("error labeling node as completed: %v", err)
+		}, fmt.Errorf("error labeling node as completed: %v", retryErr)
 	}
 
 	completedPhase := navarchosv1alpha1.ReplacementPhaseCompleted
