@@ -44,10 +44,9 @@ func UpdateStatus(c client.Client, instance *navarchosv1alpha1.NodeReplacement, 
 	}
 
 	if !reflect.DeepEqual(status, instance.Status) {
-		copy := instance.DeepCopy()
-		copy.Status = status
+		instance.Status = status
 
-		err := c.Update(context.TODO(), copy)
+		err := c.Update(context.TODO(), instance)
 		if err != nil {
 			return fmt.Errorf("error updating status: %v", err)
 		}
