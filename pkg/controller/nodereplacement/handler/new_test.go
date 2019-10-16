@@ -130,8 +130,9 @@ var _ = Describe("new node replacement handler", func() {
 			requeue, reason = h.shouldRequeueReplacement(nodeReplacement)
 		})
 		Context("if a another NodeReplacement is higher priority", func() {
+			var highPriorityNR *navarchosv1alpha1.NodeReplacement
 			BeforeEach(func() {
-				highPriorityNR := utils.ExampleNodeReplacement.DeepCopy()
+				highPriorityNR = utils.ExampleNodeReplacement.DeepCopy()
 				highPriorityNR.SetName("high-priority")
 				highPriorityNR.Spec.ReplacementSpec.Priority = intPtr(10)
 				highPriorityNR.SetOwnerReferences([]metav1.OwnerReference{utils.GetOwnerReferenceForNode(workerNode2)})
@@ -152,6 +153,26 @@ var _ = Describe("new node replacement handler", func() {
 			It("requeues the NodeReplacement in the result", func() {
 				Expect(reason).To(Equal("NodeReplacement \"high-priority\" has a higher priority"))
 			})
+
+			Context("and the higher priority replacement has completed", func() {
+				BeforeEach(func() {
+					m.Update(highPriorityNR, func(obj utils.Object) utils.Object {
+						nr, _ := obj.(*navarchosv1alpha1.NodeReplacement)
+						nr.Status.Phase = navarchosv1alpha1.ReplacementPhaseCompleted
+						return nr
+					}, timeout).Should(Succeed())
+					m.Eventually(highPriorityNR, timeout).Should(utils.WithField("Status.Phase", Equal(navarchosv1alpha1.ReplacementPhaseCompleted)))
+				})
+
+				It("sets requeue to false", func() {
+					Expect(requeue).To(BeFalse())
+				})
+
+				It("does not set the reason string", func() {
+					Expect(reason).To(Equal(""))
+				})
+			})
+
 		})
 
 		Context("if a another NodeReplacement is in Phase InProgress", func() {
