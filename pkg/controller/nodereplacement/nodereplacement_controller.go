@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	watchhandler "sigs.k8s.io/controller-runtime/pkg/handler"
@@ -51,7 +52,10 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	h := handler.NewNodeReplacementHandler(mgr.GetClient(), &handler.Options{
 		Config: mgr.GetConfig(),
 	})
-	return &ReconcileNodeReplacement{Client: mgr.GetClient(), handler: h, scheme: mgr.GetScheme()}
+	return &ReconcileNodeReplacement{Client: mgr.GetClient(),
+		handler:  h,
+		scheme:   mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor("nodereplacement-controller")}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -84,8 +88,9 @@ var _ reconcile.Reconciler = &ReconcileNodeReplacement{}
 // ReconcileNodeReplacement reconciles a NodeReplacement object
 type ReconcileNodeReplacement struct {
 	client.Client
-	handler *handler.NodeReplacementHandler
-	scheme  *runtime.Scheme
+	handler  *handler.NodeReplacementHandler
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a NodeReplacement object and makes changes based on the state read
@@ -127,6 +132,7 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 	}
 	if result.Requeue {
 		log.Printf("requeueing replacement %s: %s", instance.GetName(), result.RequeueReason)
+		r.recorder.Eventf(instance, corev1.EventTypeNormal, "ReplacementRequeue", result.RequeueReason)
 		return reconcile.Result{
 			Requeue: true,
 		}, nil
