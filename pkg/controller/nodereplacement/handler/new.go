@@ -71,6 +71,9 @@ func (h *NodeReplacementHandler) shouldRequeueReplacement(instance *navarchosv1a
 	}
 
 	for _, replacement := range replacements.Items {
+		if replacement.Status.Phase == navarchosv1alpha1.ReplacementPhaseCompleted {
+			continue
+		}
 		if *replacement.Spec.ReplacementSpec.Priority > *instance.Spec.ReplacementSpec.Priority {
 			reason := fmt.Sprintf("NodeReplacement \"%s\" has a higher priority", replacement.GetName())
 			return true, reason
