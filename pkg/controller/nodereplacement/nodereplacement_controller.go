@@ -125,6 +125,12 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("error updating status: %v", err)
 	}
+	if result.Requeue {
+		log.Printf("requeueing replacement %s: %s", instance.GetName(), result.RequeueReason)
+		return reconcile.Result{
+			Requeue: true,
+		}, nil
+	}
 
 	return reconcile.Result{}, nil
 }
