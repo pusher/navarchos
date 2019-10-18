@@ -1,0 +1,25 @@
+apiVersion: navarchos.pusher.com/v1alpha1
+kind: NodeRollout
+metadata:
+  # A NodeReplacement will be created with a name 'rollout-<random-string>'
+  generateName: "rollout-" # Must kubectl create -f
+spec:
+  # Select a single node to be processed first
+  nodeNames:
+    - replacement:
+        priority: 40
+      name: "important-node"
+  nodeSelectors:
+    # Edit the matchLabels field with the labels of your node groups
+    - replacement:
+        priority: 30
+      matchLabels:
+        "kubernetes.io/role": "support"
+    - replacement:
+        priority: 20
+      matchLabels:
+        "kubernetes.io/role": "worker"
+    - replacement:
+        priority: 10
+      matchLabels:
+        "kubernetes.io/role": "spot-worker"

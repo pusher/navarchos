@@ -1,0 +1,65 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: navarchos
+rules:
+- apiGroups:
+  - navarchos.pusher.com
+  resources:
+  - nodereplacements
+  - noderollouts
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - navarchos.pusher.com
+  resources:
+  - nodereplacements/status
+  - noderollouts/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - "" 
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list 
+  - watch 
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods/eviction
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - "" 
+  resources:
+  - events
+  verbs:
+  - patch
