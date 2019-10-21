@@ -101,6 +101,7 @@ type ReconcileNodeReplacement struct {
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=pods/eviction,verbs=create
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=patch
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch
 func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the NodeReplacement instance
