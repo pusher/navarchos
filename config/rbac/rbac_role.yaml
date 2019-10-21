@@ -49,6 +49,12 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - patch
+- apiGroups:
   - apps
   resources:
   - daemonsets
