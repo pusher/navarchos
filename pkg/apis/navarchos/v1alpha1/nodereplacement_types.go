@@ -148,6 +148,7 @@ type NodeReplacementCondition struct {
 
 // NodeReplacement is the Schema for the nodereplacements API
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:path=nodereplacements,shortName=nrep;nreps;nrp;nrps
 type NodeReplacement struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

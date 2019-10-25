@@ -128,6 +128,7 @@ type NodeRolloutCondition struct {
 
 // NodeRollout is the Schema for the noderollouts API
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:path=noderollouts,shortName=nroll;nrolls;nr;nrs
 type NodeRollout struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

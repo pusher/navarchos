@@ -10,6 +10,11 @@ spec:
   names:
     kind: NodeReplacement
     plural: nodereplacements
+    shortNames:
+    - nrep
+    - nreps
+    - nrp
+    - nrps
   scope: Cluster
   validation:
     openAPIV3Schema:
