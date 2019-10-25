@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: navarchos
+  namespace: kube-system
+  labels:
+    app: navarchos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: navarchos
+  template:
+    metadata:
+      labels:
+        app: navarchos
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - navarchos
+                topologyKey: kubernetes.io/hostname
+      serviceAccountName: navarchos
+      containers:
+        - name: controller
+          image: quay.io/pusher/navarchos:latest
+          imagePullPolicy: Always
+          args:
+            - --v=0
+            - --leader-election
+            - --leader-election-id=navarchos-leader-election
+            - --leader-election-namespace=kube-system
+            - --logtostderr=true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            limits:
+              cpu: 50m
+              memory: 100Mi
