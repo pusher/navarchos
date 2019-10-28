@@ -129,6 +129,11 @@ type NodeRolloutCondition struct {
 // NodeRollout is the Schema for the noderollouts API
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=noderollouts,shortName=nroll;nrolls;nr;nrs
+// +kubebuilder:printcolumn:name="Replacements created",type="integer",JSONPath=".status.replacementsCreatedCount",description="Number of replacements created"
+// +kubebuilder:printcolumn:name="Replacements completed",type="integer",JSONPath=".status.replacementsCompletedCount",description="Number of replacements completed"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Completed",type="date",JSONPath=".status.completionTimestamp",description="The time since the rollout completed"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type NodeRollout struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
