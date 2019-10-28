@@ -149,6 +149,13 @@ type NodeReplacementCondition struct {
 // NodeReplacement is the Schema for the nodereplacements API
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:path=nodereplacements,shortName=nrep;nreps;nrp;nrps
+// +kubebuilder:printcolumn:name="Node Pods",type="integer",JSONPath=".status.nodePodsCount",description="Number of pods on the node"
+// +kubebuilder:printcolumn:name="Ignored Pods",type="integer",JSONPath=".status.ignoredPodsCount",description="Number of pods ignored"
+// +kubebuilder:printcolumn:name="Evicted Pods",type="integer",JSONPath=".status.evictedPodsCount",description="Number of pods evicted"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Priority",type="integer",JSONPath=".spec.replacement.priority",description="The priority of the replacement",priority="1"
+// +kubebuilder:printcolumn:name="Completed",type="date",JSONPath=".status.completionTimestamp",description="The time since the replacement completed"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type NodeReplacement struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

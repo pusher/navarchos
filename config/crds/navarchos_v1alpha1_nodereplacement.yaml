@@ -6,6 +6,34 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: nodereplacements.navarchos.pusher.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.nodePodsCount
+    description: Number of pods on the node
+    name: Node Pods
+    type: integer
+  - JSONPath: .status.ignoredPodsCount
+    description: Number of pods ignored
+    name: Ignored Pods
+    type: integer
+  - JSONPath: .status.evictedPodsCount
+    description: Number of pods evicted
+    name: Evicted Pods
+    type: integer
+  - JSONPath: .status.phase
+    name: Phase
+    type: string
+  - JSONPath: .spec.replacement.priority
+    description: The priority of the replacement
+    name: Priority
+    priority: 1
+    type: integer
+  - JSONPath: .status.completionTimestamp
+    description: The time since the replacement completed
+    name: Completed
+    type: date
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: navarchos.pusher.com
   names:
     kind: NodeReplacement
