@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -58,10 +59,11 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 		},
 	}
 
-	err := runNodeDrain(helper, instance.Spec.NodeName)
+	failedPods, err := runNodeDrain(helper, instance.Spec.NodeName)
 	if err != nil {
 		return &status.Result{
 			EvictedPods: evictedPods.readPods(),
+			FailedPods:  failedPods,
 		}, fmt.Errorf("error draining node: %v", err)
 	}
 
@@ -84,21 +86,44 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 	}, nil
 }
 
-// runNodeDrain uses the kubectl drain package to drain a node.
-func runNodeDrain(drainer *drain.Helper, nodeName string) error {
+// runNodeDrain uses the kubectl drain package to drain a node. If any pods
+// fail, it unpacks the individual error from the aggregate and returns them
+// individually
+func runNodeDrain(drainer *drain.Helper, nodeName string) ([]navarchosv1alpha1.PodReason, error) {
 	list, errs := drainer.GetPodsForDeletion(nodeName)
 	if errs != nil {
-		return utilerrors.NewAggregate(errs)
+		return []navarchosv1alpha1.PodReason{}, utilerrors.NewAggregate(errs)
 	}
 	if warnings := list.Warnings(); warnings != "" {
 		fmt.Fprintf(drainer.ErrOut, "WARNING: %s\n", warnings)
 	}
 
 	if err := drainer.DeleteOrEvictPods(list.Pods()); err != nil {
-		// Maybe warn about non-deleted pods here
-		return err
+		// Extract failed pods from aggregate error
+		e, ok := err.(utilerrors.Aggregate)
+		if !ok {
+			// the type assertion has failed for some reason...
+			// it shouldn't have, bail on unpacking the aggregate
+			return []navarchosv1alpha1.PodReason{}, err
+		}
+
+		return parseAggregateError(e.Errors()), err
 	}
-	return nil
+	return []navarchosv1alpha1.PodReason{}, nil
+}
+
+// parseAggregateError parses the aggregate error returned from
+// drainer.DeleteOrEvictPods, and returns the information as PodReasons
+func parseAggregateError(errs []error) []navarchosv1alpha1.PodReason {
+	reasons := []navarchosv1alpha1.PodReason{}
+	for _, err := range errs {
+		split := strings.Split(err.Error(), "\"")
+		reasons = append(reasons, navarchosv1alpha1.PodReason{
+			Name:   split[1],
+			Reason: err.Error(),
+		})
+	}
+	return reasons
 }
 
 func (h *NodeReplacementHandler) addCompletedLabel(nodeName string) error {
