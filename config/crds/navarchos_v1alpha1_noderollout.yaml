@@ -6,6 +6,25 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: noderollouts.navarchos.pusher.com
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.replacementsCreatedCount
+    description: Number of replacements created
+    name: Replacements created
+    type: integer
+  - JSONPath: .status.replacementsCompletedCount
+    description: Number of replacements completed
+    name: Replacements completed
+    type: integer
+  - JSONPath: .status.phase
+    name: Phase
+    type: string
+  - JSONPath: .status.completionTimestamp
+    description: The time since the rollout completed
+    name: Completed
+    type: date
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: navarchos.pusher.com
   names:
     kind: NodeRollout
