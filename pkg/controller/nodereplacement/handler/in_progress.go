@@ -37,6 +37,46 @@ func (e *threadsafeEvictedPods) readPods() []string {
 	return e.pods
 }
 
+// failedPodError implements the Error interface and provides a method to lazily
+// retrieve the PodReasons
+type failedPodError struct {
+	err        error
+	failedPods []navarchosv1alpha1.PodReason
+}
+
+func (f failedPodError) Error() string {
+	return f.err.Error()
+}
+
+// PodReasons parses the aggregate error and returns the infzormation as type
+// PodReasons
+func (f *failedPodError) PodReasons() []navarchosv1alpha1.PodReason {
+	if f.failedPods != nil {
+		return f.failedPods
+	}
+	reasons := []navarchosv1alpha1.PodReason{}
+	// If the error is not an aggregate, bail..
+	e, ok := f.err.(utilerrors.Aggregate)
+	if !ok {
+		return reasons
+	}
+
+	for _, err := range e.Errors() {
+		split := strings.Split(err.Error(), "\"")
+		// If there is more than one occurance of "" this won't work, bail..
+		if len(split) != 2 {
+			continue
+		}
+		reasons = append(reasons, navarchosv1alpha1.PodReason{
+			Name:   split[1],
+			Reason: err.Error(),
+		})
+	}
+	f.failedPods = reasons
+
+	return reasons
+}
+
 // handleInProgress handles a NodeReplacement in the in progress phase. It
 // drains the node specified in the replacement and then marks it completed.
 func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.NodeReplacement) (*status.Result, error) {
@@ -59,12 +99,20 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 		},
 	}
 
-	failedPods, err := runNodeDrain(helper, instance.Spec.NodeName)
+	err := runNodeDrain(helper, instance.Spec.NodeName)
 	if err != nil {
+		e, ok := err.(failedPodError)
+		if !ok {
+			// the type assertion has failed for some reason...
+			// it shouldn't have, bail..
+			return &status.Result{
+				EvictedPods: evictedPods.readPods(),
+			}, fmt.Errorf("error draining node: %v", err)
+		}
 		return &status.Result{
 			EvictedPods: evictedPods.readPods(),
-			FailedPods:  failedPods,
-		}, fmt.Errorf("error draining node: %v", err)
+			FailedPods:  e.PodReasons(),
+		}, fmt.Errorf("error draining node: %v", err.Error())
 	}
 
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -89,41 +137,20 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 // runNodeDrain uses the kubectl drain package to drain a node. If any pods
 // fail, it unpacks the individual error from the aggregate and returns them
 // individually
-func runNodeDrain(drainer *drain.Helper, nodeName string) ([]navarchosv1alpha1.PodReason, error) {
+func runNodeDrain(drainer *drain.Helper, nodeName string) error {
 	list, errs := drainer.GetPodsForDeletion(nodeName)
 	if errs != nil {
-		return []navarchosv1alpha1.PodReason{}, utilerrors.NewAggregate(errs)
+		return utilerrors.NewAggregate(errs)
 	}
 	if warnings := list.Warnings(); warnings != "" {
 		fmt.Fprintf(drainer.ErrOut, "WARNING: %s\n", warnings)
 	}
 
 	if err := drainer.DeleteOrEvictPods(list.Pods()); err != nil {
-		// Extract failed pods from aggregate error
-		e, ok := err.(utilerrors.Aggregate)
-		if !ok {
-			// the type assertion has failed for some reason...
-			// it shouldn't have, bail on unpacking the aggregate
-			return []navarchosv1alpha1.PodReason{}, err
-		}
 
-		return parseAggregateError(e.Errors()), err
+		return failedPodError{err: err}
 	}
-	return []navarchosv1alpha1.PodReason{}, nil
-}
-
-// parseAggregateError parses the aggregate error returned from
-// drainer.DeleteOrEvictPods, and returns the information as PodReasons
-func parseAggregateError(errs []error) []navarchosv1alpha1.PodReason {
-	reasons := []navarchosv1alpha1.PodReason{}
-	for _, err := range errs {
-		split := strings.Split(err.Error(), "\"")
-		reasons = append(reasons, navarchosv1alpha1.PodReason{
-			Name:   split[1],
-			Reason: err.Error(),
-		})
-	}
-	return reasons
+	return nil
 }
 
 func (h *NodeReplacementHandler) addCompletedLabel(nodeName string) error {

@@ -459,6 +459,7 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			Context("permanently", func() {
+				// Currently the drain package does not fail on an infinitely blocking PDB
 				PIt("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
 						navarchosv1alpha1.PodReason{
