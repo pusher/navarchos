@@ -199,7 +199,7 @@ var ExampleDaemonSet = &appsv1.DaemonSet{
 	},
 }
 
-var intStr0 = intstr.FromInt(0)
+var intStr1 = intstr.FromInt(1)
 
 // ExamplePodDisruptionBudget is an example PodDisruptionBudget for use in tests
 var ExamplePodDisruptionBudget = policyv1beta1.PodDisruptionBudget{
@@ -208,7 +208,7 @@ var ExamplePodDisruptionBudget = policyv1beta1.PodDisruptionBudget{
 		Namespace: "default",
 	},
 	Spec: policyv1beta1.PodDisruptionBudgetSpec{
-		MaxUnavailable: &intStr0,
+		MaxUnavailable: &intStr1,
 		Selector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"block-eviction": "true",

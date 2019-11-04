@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -123,7 +122,7 @@ var _ = Describe("Handler suite", func() {
 		stopMgr, mgrStopped = StartTestManager(mgr)
 
 		grace := 1 * time.Second
-		drain := 5 * time.Second
+		drain := 10 * time.Second
 		opts = &Options{
 			EvictionGracePeriod: &grace,
 			DrainTimeout:        &drain,
@@ -185,7 +184,7 @@ var _ = Describe("Handler suite", func() {
 		h = NewNodeReplacementHandler(m.Client, opts)
 		result, handleErr = h.Handle(nodeReplacement)
 		close(done)
-	}, 2*timeout.Seconds())
+	}, 3*timeout.Seconds())
 
 	Context("when the Handler is called on an uninitialised NodeReplacement", func() {
 		Context("with no phase set", func() {
@@ -408,11 +407,17 @@ var _ = Describe("Handler suite", func() {
 			})
 		})
 
-		PContext("when a Pod Disruption Budget blocks eviction of a pod", func() {
+		Context("when a Pod Disruption Budget blocks eviction of a pod", func() {
 			var pdb *policyv1beta1.PodDisruptionBudget
 			BeforeEach(func() {
 				pdb = utils.ExamplePodDisruptionBudget.DeepCopy()
 				m.Create(pdb).Should(Succeed())
+				m.UpdateStatus(pdb, func(obj utils.Object) utils.Object {
+					p, _ := obj.(*policyv1beta1.PodDisruptionBudget)
+					p.Status.PodDisruptionsAllowed = int32(0)
+					p.Status.ObservedGeneration = p.ObjectMeta.Generation
+					return p
+				}, timeout).Should(Succeed())
 				m.Update(pod1, func(obj utils.Object) utils.Object {
 					pod, _ := obj.(*corev1.Pod)
 					// Ensure the Pod matches the PDB LabelSelector
@@ -428,8 +433,15 @@ var _ = Describe("Handler suite", func() {
 				}, timeout).Should(Succeed())
 			})
 
+			AfterEach(func() {
+				m.Delete(pdb).Should(Succeed())
+				// Make sure that the pod is deleted before the test is considered done
+				// Else you are left with dangling goroutines trying to evict it
+				m.Get(pod1, timeout).ShouldNot(Succeed())
+			})
+
 			Context("permanently", func() {
-				It("fails the eviction of the Pod", func() {
+				PIt("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
 						navarchosv1alpha1.PodReason{
 							Name:   "pod-1",
@@ -443,7 +455,7 @@ var _ = Describe("Handler suite", func() {
 				})
 
 				It("should return an error", func() {
-					Expect(handleErr).To(MatchError(Equal("failure evicting pods")))
+					Expect(handleErr).To(MatchError(Equal("error draining node: drain did not complete within 10s")))
 				})
 			})
 
@@ -453,10 +465,10 @@ var _ = Describe("Handler suite", func() {
 					go func() {
 						defer GinkgoRecover()
 						time.Sleep(2 * time.Second)
-						m.Update(pdb, func(obj utils.Object) utils.Object {
+						m.UpdateStatus(pdb, func(obj utils.Object) utils.Object {
 							p, _ := obj.(*policyv1beta1.PodDisruptionBudget)
-							one := intstr.FromInt(1)
-							p.Spec.MaxUnavailable = &one
+							p.Status.PodDisruptionsAllowed = int32(1)
+							p.Status.ObservedGeneration = p.ObjectMeta.Generation
 							return p
 						}, timeout-2*time.Second).Should(Succeed())
 					}()
