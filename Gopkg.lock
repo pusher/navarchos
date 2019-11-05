@@ -816,12 +816,12 @@
   revision = "db7b694dc208eead64d38030265f702db593fcf2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:d4b9fb9664bc07bbb8cb7991c9853c4dc39b74de45bff8ddc8d1d823551be0c7"
+  digest = "1:56ab65e08dc43791b77b9f92f7496a27b3222b41d9147e2625166343d3d62c43"
   name = "k8s.io/kubectl"
   packages = ["pkg/drain"]
   pruneopts = "T"
-  revision = "340a90f4c38ff495ef1a80cf4ac08aba3976229d"
+  revision = "d07fcf44fa7ddc0be18d6370fa57f4152c75ac02"
+  version = "kubernetes-1.17.0-beta.0"
 
 [[projects]]
   branch = "master"
@@ -946,6 +946,8 @@
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/util/retry",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/kubectl/pkg/drain",
