@@ -433,13 +433,6 @@ var _ = Describe("Handler suite", func() {
 				}, timeout).Should(Succeed())
 			})
 
-			AfterEach(func() {
-				m.Delete(pdb).Should(Succeed())
-				// Make sure that the pod is deleted before the test is considered done
-				// Else you are left with dangling goroutines trying to evict it
-				m.Get(pod1, timeout).ShouldNot(Succeed())
-			})
-
 			Context("permanently", func() {
 				PIt("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
@@ -455,7 +448,7 @@ var _ = Describe("Handler suite", func() {
 				})
 
 				It("should return an error", func() {
-					Expect(handleErr).To(MatchError(Equal("error draining node: drain did not complete within 10s")))
+					Expect(handleErr).To(MatchError(Equal("error draining node: error when evicting pod \"pod-1\": global timeout reached: 10s")))
 				})
 			})
 
