@@ -46,7 +46,7 @@ type Options struct {
 // Complete defaults any values that are not explicitly set
 func (o *Options) Complete() {
 	if o.EvictionGracePeriod == nil {
-		grace := 30 * time.Second
+		grace := -1 * time.Second
 		o.EvictionGracePeriod = &grace
 	}
 	if o.DrainTimeout == nil {
