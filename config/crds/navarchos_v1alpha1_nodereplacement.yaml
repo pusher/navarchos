@@ -19,6 +19,10 @@ spec:
     description: Number of pods evicted
     name: Evicted Pods
     type: integer
+  - JSONPath: .status.failedPodsCount
+    description: Number of pods failed
+    name: Failed Pods
+    type: integer
   - JSONPath: .status.phase
     name: Phase
     type: string
@@ -31,6 +35,11 @@ spec:
     description: The time since the replacement completed
     name: Completed
     type: date
+  - JSONPath: .metadata.ownerReferences[].name
+    description: The owner of the replacement
+    name: Owners
+    priority: 1
+    type: string
   - JSONPath: .metadata.creationTimestamp
     name: Age
     type: date
