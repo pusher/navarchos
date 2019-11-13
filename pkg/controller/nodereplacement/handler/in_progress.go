@@ -168,13 +168,14 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 		}, fmt.Errorf("error draining node: %v", err.Error())
 	}
 
+	outMap := errOut.ReadErrorMap(evictedPods.readPods())
+	podReasons := buildPodReasonsFromMap(outMap)
+
 	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		return h.addCompletedLabel(instance.Spec.NodeName)
 	})
 	if retryErr != nil {
-		return &status.Result{
-			EvictedPods: evictedPods.readPods(),
-		}, fmt.Errorf("error labeling node as completed: %v", retryErr)
+		log.Printf("error labeling node as completed: %v", retryErr)
 	}
 
 	completedPhase := navarchosv1alpha1.ReplacementPhaseCompleted
@@ -182,6 +183,7 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 
 	return &status.Result{
 		EvictedPods:         evictedPods.readPods(),
+		FailedPods:          podReasons,
 		Phase:               &completedPhase,
 		CompletionTimestamp: &completedTime,
 	}, nil
