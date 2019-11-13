@@ -460,11 +460,11 @@ var _ = Describe("Handler suite", func() {
 
 			Context("permanently", func() {
 				// Currently the drain package does not fail on an infinitely blocking PDB
-				PIt("fails the eviction of the Pod", func() {
+				It("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
 						navarchosv1alpha1.PodReason{
 							Name:   "pod-1",
-							Reason: "evicting pod blocked by disruption budget",
+							Reason: "error when evicting pod \"pod-1\" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.",
 						},
 					))
 				})
