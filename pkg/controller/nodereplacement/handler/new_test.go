@@ -49,6 +49,12 @@ var _ = Describe("new node replacement handler", func() {
 		return pod
 	}
 
+	var setPodPending = func(obj utils.Object) utils.Object {
+		pod, _ := obj.(*corev1.Pod)
+		pod.Status.Phase = corev1.PodPending
+		return pod
+	}
+
 	var setPodSucceeded = func(obj utils.Object) utils.Object {
 		pod, _ := obj.(*corev1.Pod)
 		pod.Status.Phase = corev1.PodSucceeded
@@ -190,6 +196,20 @@ var _ = Describe("new node replacement handler", func() {
 
 			It("requeues the NodeReplacement", func() {
 				Expect(reason).To(Equal("NodeReplacement \"in-progress\" is already in-progress"))
+			})
+		})
+
+		Context("if a pod is pending", func() {
+			BeforeEach(func() {
+				m.UpdateStatus(pod1, setPodPending, timeout).Should(Succeed())
+			})
+
+			It("sets requeue to true", func() {
+				Expect(requeue).To(BeTrue())
+			})
+
+			It("requeues the NodeReplacement", func() {
+				Expect(reason).To(Equal("requeuing as there are pending pod(s): [pod-1]"))
 			})
 		})
 

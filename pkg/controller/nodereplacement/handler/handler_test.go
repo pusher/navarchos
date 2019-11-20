@@ -79,6 +79,12 @@ var _ = Describe("Handler suite", func() {
 		return pod
 	}
 
+	var setPodPending = func(obj utils.Object) utils.Object {
+		pod, _ := obj.(*corev1.Pod)
+		pod.Status.Phase = corev1.PodPending
+		return pod
+	}
+
 	var setPodSucceeded = func(obj utils.Object) utils.Object {
 		pod, _ := obj.(*corev1.Pod)
 		pod.Status.Phase = corev1.PodSucceeded
@@ -289,6 +295,25 @@ var _ = Describe("Handler suite", func() {
 			It("requeues the NodeReplacement", func() {
 				Expect(result.Requeue).To(BeTrue())
 				Expect(result.RequeueReason).To(Equal("NodeReplacement \"in-progress\" is already in-progress"))
+			})
+
+			It("does not set the Result NodePods field", func() {
+				Expect(result.NodePods).To(BeEmpty())
+			})
+
+			It("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("if a pod is pending", func() {
+			BeforeEach(func() {
+				m.UpdateStatus(pod1, setPodPending, timeout).Should(Succeed())
+			})
+
+			It("requeues the NodeReplacement", func() {
+				Expect(result.Requeue).To(BeTrue())
+				Expect(result.RequeueReason).To(Equal("requeuing as there are pending pod(s): [pod-1]"))
 			})
 
 			It("does not set the Result NodePods field", func() {

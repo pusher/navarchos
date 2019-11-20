@@ -77,7 +77,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return []string{pod.Spec.NodeName}
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add pod spec.nodeName indexer: %s", err.Error())
+	}
+
+	err = mgr.GetCache().IndexField(&corev1.Pod{}, "status.phase", func(obj runtime.Object) []string {
+		pod, _ := obj.(*corev1.Pod)
+		return []string{string(pod.Status.Phase)}
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add pod phase indexer: %s", err.Error())
 	}
 
 	return nil
