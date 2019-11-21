@@ -84,6 +84,19 @@ func (h *NodeReplacementHandler) shouldRequeueReplacement(instance *navarchosv1a
 		}
 	}
 
+	pods := corev1.PodList{}
+	err = h.client.List(context.Background(), &pods, client.MatchingFields{"status.phase": "Pending"})
+	if err != nil {
+		return true, fmt.Sprintf("failed to list pending pods: %v", err)
+	}
+	if len(pods.Items) != 0 {
+		podNames := []string{}
+		for _, pod := range pods.Items {
+			podNames = append(podNames, pod.GetName())
+		}
+		return true, fmt.Sprintf("requeuing as there are pending pod(s): %v", podNames)
+	}
+
 	return false, ""
 }
 
