@@ -12,6 +12,7 @@ import (
 	navarchosv1alpha1 "github.com/pusher/navarchos/pkg/apis/navarchos/v1alpha1"
 	"github.com/pusher/navarchos/pkg/controller/nodereplacement/status"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
@@ -38,16 +39,17 @@ func (e *threadsafeEvictedPods) readPods() []string {
 	return e.pods
 }
 
-// threadsafeErrWriter provides a threadsafe map[string]string. This is used to record
-// errors from the drain call that otherwise would not be reported. A map is
-// used as a set, removing duplicates
+// threadsafeErrWriter provides a threadsafe map[string]string. This is used to
+// record errors from the drain call that otherwise would not be reported. A map
+// is used as a set, removing duplicates
 type threadsafeErrWriter struct {
 	errMap map[string]string
 	sync.RWMutex
 }
 
-// Write implements the io.Writer interface, writing to a map[string]string (podName:error) as the
-// concrete type. It also prints the data given to it to stdErr
+// Write implements the io.Writer interface, writing to a map[string]string
+// (podName:error) as the concrete type. It also prints the data given to it to
+// stdErr
 func (w *threadsafeErrWriter) Write(data []byte) (int, error) {
 	w.Lock()
 	defer w.Unlock()
@@ -62,14 +64,14 @@ func (w *threadsafeErrWriter) Write(data []byte) (int, error) {
 	return fmt.Fprintf(os.Stderr, string(data))
 }
 
-// readErrorMap reads the underlying map[string]string removing any keys that
+// ReadErrorMap reads the underlying map[string]string removing any keys that
 // match the provided evictedPods
 func (w *threadsafeErrWriter) ReadErrorMap(evictedPods []string) map[string]string {
 	w.Lock()
-	defer w.Unlock()
 	errorMap := copyMap(w.errMap)
+	w.Unlock()
 	for _, podName := range evictedPods {
-		if _, exists := w.errMap[podName]; exists {
+		if _, exists := errorMap[podName]; exists {
 			delete(errorMap, podName)
 		}
 	}
@@ -143,8 +145,8 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 	if err != nil {
 		e, ok := err.(failedPodError)
 		if !ok {
-			// the type assertion has failed for some reason...
-			// it shouldn't have, bail..
+			// the type assertion has failed for some reason...  it shouldn't
+			// have, bail..
 			return &status.Result{
 				EvictedPods: evictedPods.readPods(),
 			}, fmt.Errorf("error draining node: %v", err)
@@ -159,8 +161,8 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 			aggregateMap[k] = v
 		}
 
-		// outMap now contains the union of the two maps, with k,v from
-		// outMap overwriting those of aggregate
+		// outMap now contains the union of the two maps, with k,v from outMap
+		// overwriting those of aggregate
 		podReasons := buildPodReasonsFromMap(aggregateMap)
 
 		return &status.Result{
@@ -177,6 +179,12 @@ func (h *NodeReplacementHandler) handleInProgress(instance *navarchosv1alpha1.No
 	})
 	if retryErr != nil {
 		log.Printf("error labeling node as completed: %v", retryErr)
+		if !apierrors.IsNotFound(retryErr) {
+			return &status.Result{
+				EvictedPods: evictedPods.readPods(),
+				FailedPods:  podReasons,
+			}, retryErr
+		}
 	}
 
 	completedPhase := navarchosv1alpha1.ReplacementPhaseCompleted
