@@ -152,9 +152,11 @@ type NodeReplacementCondition struct {
 // +kubebuilder:printcolumn:name="Node Pods",type="integer",JSONPath=".status.nodePodsCount",description="Number of pods on the node"
 // +kubebuilder:printcolumn:name="Ignored Pods",type="integer",JSONPath=".status.ignoredPodsCount",description="Number of pods ignored"
 // +kubebuilder:printcolumn:name="Evicted Pods",type="integer",JSONPath=".status.evictedPodsCount",description="Number of pods evicted"
+// +kubebuilder:printcolumn:name="Failed Pods",type="integer",JSONPath=".status.failedPodsCount",description="Number of pods failed"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="Priority",type="integer",JSONPath=".spec.replacement.priority",description="The priority of the replacement",priority="1"
 // +kubebuilder:printcolumn:name="Completed",type="date",JSONPath=".status.completionTimestamp",description="The time since the replacement completed"
+// +kubebuilder:printcolumn:name="Owners",type="string",JSONPath=".metadata.ownerReferences[].name",description="The owner of the replacement",priority="1"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type NodeReplacement struct {
 	metav1.TypeMeta   `json:",inline"`

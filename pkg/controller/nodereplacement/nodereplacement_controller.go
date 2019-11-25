@@ -1,17 +1,16 @@
 /*
 Copyright 2019 Pusher Ltd.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License.  You may obtain a copy of the
+License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations under the License.
 */
 
 package nodereplacement
@@ -37,12 +36,14 @@ import (
 )
 
 /**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify
+with their own Controller * business logic.  Delete these comments after
+modifying this file.*
+*/
 
-// Add creates a new NodeReplacement Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+// Add creates a new NodeReplacement Controller and adds it to the Manager with
+// default RBAC. The Manager will set fields on the Controller and Start it when
+// the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
 }
@@ -101,15 +102,16 @@ type ReconcileNodeReplacement struct {
 	recorder record.EventRecorder
 }
 
-// Reconcile reads that state of the cluster for a NodeReplacement object and makes changes based on the state read
-// and what is in the NodeReplacement.Spec
-// Automatically generate RBAC rules to allow the Controller to read and write Deployments
+// Reconcile reads that state of the cluster for a NodeReplacement object and
+// makes changes based on the state read and what is in the NodeReplacement.Spec
+// Automatically generate RBAC rules to allow the Controller to read and write
+// Deployments
 // +kubebuilder:rbac:groups=navarchos.pusher.com,resources=nodereplacements,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=navarchos.pusher.com,resources=nodereplacements/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups="",resources=pods/eviction,verbs=create
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=events,verbs=patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch
 func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the NodeReplacement instance
@@ -117,8 +119,8 @@ func (r *ReconcileNodeReplacement) Reconcile(request reconcile.Request) (reconci
 	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Object not found, return.  Created objects are automatically garbage collected.
-			// For additional cleanup logic use finalizers.
+			// Object not found, return.  Created objects are automatically
+			// garbage collected.  For additional cleanup logic use finalizers.
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.

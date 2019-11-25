@@ -383,6 +383,29 @@ var _ = Describe("Handler suite", func() {
 			Expect(nodeReplacement.Status.Phase).To(Equal(navarchosv1alpha1.ReplacementPhaseInProgress))
 		})
 
+		Context("if the node goes away before being marked completed", func() {
+			BeforeEach(func() {
+				m.Delete(workerNode1).Should(Succeed())
+				m.Delete(pod1).Should(Succeed())
+				m.Delete(pod2).Should(Succeed())
+				m.Delete(pod3).Should(Succeed())
+				m.Get(workerNode1, timeout).ShouldNot(Succeed())
+				m.Get(pod1, timeout).ShouldNot(Succeed())
+				m.Get(pod2, timeout).ShouldNot(Succeed())
+				m.Get(pod3, timeout).ShouldNot(Succeed())
+
+			})
+
+			It("marks the NodeReplacement completed", func() {
+				phase := navarchosv1alpha1.ReplacementPhaseCompleted
+				Expect(result.Phase).To(Equal(&phase))
+			})
+
+			It("should not return an error", func() {
+				Expect(handleErr).ToNot(HaveOccurred())
+			})
+		})
+
 		It("evicts all pods in the NodePods list", func() {
 			for _, pod := range []*corev1.Pod{pod1, pod2, pod3} {
 				m.Get(pod, timeout).ShouldNot(Succeed())
@@ -403,6 +426,11 @@ var _ = Describe("Handler suite", func() {
 
 		It("adds a completed label to the node", func() {
 			m.Eventually(workerNode1, timeout).Should(utils.WithField("ObjectMeta.Labels", HaveKey("navarchos.pusher.com/drain-completed")))
+		})
+
+		It("sets the phase to completed", func() {
+			phase := navarchosv1alpha1.ReplacementPhaseCompleted
+			Expect(result.Phase).To(Equal(&phase))
 		})
 
 		PIt("deletes the node", func() {
@@ -459,11 +487,12 @@ var _ = Describe("Handler suite", func() {
 			})
 
 			Context("permanently", func() {
-				PIt("fails the eviction of the Pod", func() {
+				// Currently the drain package does not fail on an infinitely blocking PDB
+				It("fails the eviction of the Pod", func() {
 					Expect(result.FailedPods).To(ConsistOf(
 						navarchosv1alpha1.PodReason{
 							Name:   "pod-1",
-							Reason: "evicting pod blocked by disruption budget",
+							Reason: "error when evicting pod \"pod-1\" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.",
 						},
 					))
 				})

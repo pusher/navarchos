@@ -67,7 +67,8 @@ func (o *Options) Complete() {
 	}
 }
 
-// NodeReplacementHandler handles the business logic within the NodeReplacement controller.
+// NodeReplacementHandler handles the business logic within the NodeReplacement
+// controller.
 type NodeReplacementHandler struct {
 	client              client.Client
 	k8sClient           kubernetes.Interface
