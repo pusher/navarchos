@@ -1,5 +1,8 @@
 # Návarchos
 
+> NOTE: this repository is currently **UNMAINTAINED** and is looking for new owner(s).
+> See [#53](/../../issues/53) for more information.
+
 Návarchos is a node replacing controller. It is intended to automate the upgrade
 process of a Kubernetes cluster running immutable infrastructure. It provides a
 declarative way to replace groups of nodes without supervision.
